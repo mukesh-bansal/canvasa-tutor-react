@@ -10,7 +10,7 @@
 In the SuperStem React frontend:
 
 ```bash
-npm i github:canvasa/tutor-react#v0.1.0
+npm i github:mukesh-bansal/canvasa-tutor-react#v0.1.0
 ```
 
 (If the canvasa GitHub remote isn't set up yet, install from the local path the package was extracted to, or pin to a commit hash. Confirm with the human first.)
