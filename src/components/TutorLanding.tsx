@@ -26,19 +26,34 @@ const DEFAULT_HREF = (slug: string) => `/ai-tutor/${slug}`;
 /* ──────────────────────────────────────────────────────────────
  * Lesson generation hook
  * ────────────────────────────────────────────────────────────── */
+/** Robust slug extractor — Canvas A returns ready_url in multiple shapes:
+ *   /lesson_<slug>.html   (legacy)
+ *   /tutor/<slug>
+ *   /tutor?lesson=<slug>
+ */
+function slugFromUrl(maybeUrl?: string): string {
+  if (!maybeUrl) return '';
+  try {
+    const u = new URL(maybeUrl, 'http://x');
+    const fromQuery = u.searchParams.get('lesson');
+    if (fromQuery) return fromQuery;
+    let p = u.pathname;
+    p = p.replace(/^\/+/, '');
+    p = p.replace(/^tutor\//, '');
+    p = p.replace(/^lesson_/, '');
+    p = p.replace(/\.html$/, '');
+    return p;
+  } catch { return ''; }
+}
+
 function useLessonLauncher(hrefBuilder: (slug: string) => string) {
   const [progress, setProgress] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  function navigate(slug: string) { window.location.href = hrefBuilder(slug); }
-
-  function slugFromUrl(maybeUrl?: string): string {
-    if (!maybeUrl) return '';
-    try {
-      const u = new URL(maybeUrl, 'http://x');
-      return u.searchParams.get('lesson') || u.pathname.split('/').pop() || '';
-    } catch { return ''; }
+  function navigate(slug: string) {
+    if (!slug) { setError('Lesson ready but slug missing'); setBusy(false); return; }
+    window.location.href = hrefBuilder(slug);
   }
 
   async function poll(sessionId: string) {
@@ -46,14 +61,11 @@ function useLessonLauncher(hrefBuilder: (slug: string) => string) {
     while (true) {
       try {
         const s = await tutorEndpoints.lessonStatus(sessionId);
-        if (s.progress && s.progress !== lastStatus) { setProgress(s.progress); lastStatus = s.progress; }
-        if (s.status === 'ready' && s.ready_url) {
-          const slug = slugFromUrl(s.ready_url);
-          setBusy(false);
-          if (slug) { navigate(slug); return; }
-          setError('Lesson ready but slug missing'); return;
-        }
-        if (s.status === 'error') {
+        const stepLabel = (s.progress || s.status || '').replace(/_/g, ' ');
+        if (stepLabel && stepLabel !== lastStatus) { setProgress(stepLabel); lastStatus = stepLabel; }
+        // Canvas A signals readiness via ready_url being non-null (not status==='ready').
+        if (s.ready_url) { setBusy(false); navigate(slugFromUrl(s.ready_url)); return; }
+        if (s.status === 'error' || s.error) {
           setError(s.error || 'Generation failed'); setBusy(false); return;
         }
       } catch (e: any) {

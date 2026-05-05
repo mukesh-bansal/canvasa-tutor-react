@@ -1,6 +1,6 @@
 {
   "name": "@canvasa/tutor-react",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Embeddable AI Tutor — React components + API client. Host-themed via CSS variables.",
   "type": "module",
   "main": "./dist/tutor-react.js",
