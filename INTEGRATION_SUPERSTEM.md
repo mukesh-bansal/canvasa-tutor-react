@@ -8,7 +8,7 @@
 ## Step 1 — Install the package (v0.1.2)
 
 ```bash
-npm i github:mukesh-bansal/canvasa-tutor-react#v0.1.2
+npm i github:mukesh-bansal/canvasa-tutor-react#v0.1.3
 ```
 
 Peer deps your host must already have: `react` ≥ 18, `react-dom` ≥ 18, `react-router-dom` ≥ 6, `@tanstack/react-query` ≥ 5, `axios` ≥ 1.

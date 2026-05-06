@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { tutorEndpoints, getTutorHost } from '../services/tutorApi';
+import { getTutorHost } from '../services/tutorApi';
 
 export type LessonMode = 'walkthrough' | 'make_me';
 
@@ -29,18 +29,6 @@ export type LessonModeModalProps = {
 
 const DEFAULT_HREF = (slug: string) => `/ai-tutor/${encodeURIComponent(slug)}`;
 
-function slugFromUrl(maybeUrl?: string): string {
-  if (!maybeUrl) return '';
-  try {
-    const u = new URL(maybeUrl, 'http://x');
-    const fromQuery = u.searchParams.get('lesson');
-    if (fromQuery) return fromQuery;
-    let p = u.pathname;
-    p = p.replace(/^\/+/, '').replace(/^tutor\//, '').replace(/^lesson_/, '').replace(/\.html$/, '');
-    return p;
-  } catch { return ''; }
-}
-
 export function LessonModeModal({
   lesson,
   lessonHref = DEFAULT_HREF,
@@ -50,16 +38,13 @@ export function LessonModeModal({
   onClose,
 }: LessonModeModalProps) {
   const [mode, setMode] = useState<LessonMode>(autoStart || defaultMode);
-  const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState('');
-  const [error, setError] = useState('');
 
   // ESC closes
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape' && !busy) onClose(); }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [busy, onClose]);
+  }, [onClose]);
 
   // Lock body scroll
   useEffect(() => {
@@ -68,14 +53,12 @@ export function LessonModeModal({
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  async function start(m: LessonMode) {
-    setError('');
-
+  function start(m: LessonMode) {
     // Make-me — always go to canvasa /guide?lesson=<slug>; backend handles cached + uncached.
     if (m === 'make_me') {
       if (!lesson.slug) {
-        // No slug — can't address /guide directly. Fall through to walkthrough generation.
-        await startWalkthroughGenerated();
+        // No slug — can't address /guide directly. Fall through to walkthrough live mode.
+        window.location.href = `${getTutorHost()}/tutor?ask=${encodeURIComponent(lesson.title)}`;
         return;
       }
       window.location.href = `${getTutorHost()}/guide?lesson=${encodeURIComponent(lesson.slug)}`;
@@ -88,37 +71,12 @@ export function LessonModeModal({
       return;
     }
 
-    // Walkthrough + uncached — kick off generation.
-    await startWalkthroughGenerated();
-  }
-
-  async function startWalkthroughGenerated() {
-    setBusy(true);
-    setProgress('Starting…');
-    try {
-      const res = await tutorEndpoints.generateLesson(lesson.title);
-      if (res.ready_url) {
-        const slug = slugFromUrl(res.ready_url);
-        if (slug) { window.location.href = lessonHref(slug); return; }
-      }
-      let last = '';
-      while (true) {
-        const s = await tutorEndpoints.lessonStatus(res.session_id);
-        const step = (s.progress || s.status || '').replace(/_/g, ' ');
-        if (step && step !== last) { setProgress(step); last = step; }
-        if (s.ready_url) {
-          const slug = slugFromUrl(s.ready_url);
-          if (slug) { window.location.href = lessonHref(slug); return; }
-        }
-        if (s.status === 'error' || s.error) {
-          setError(s.error || 'Generation failed'); setBusy(false); return;
-        }
-        await new Promise(r => setTimeout(r, 1500));
-      }
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || e?.message || 'Generation failed');
-      setBusy(false);
-    }
+    // Walkthrough + uncached — navigate IMMEDIATELY to canvas-a's live-mode entry.
+    // /tutor?ask=<title> plays the hello narration on page load, then bridging
+    // audio while server-side generation runs, then transitions to beat 1 with
+    // beat audio. Doing this client-side (POST /generate-lesson + poll + nav)
+    // makes the user wait silently and skips the intro audio entirely.
+    window.location.href = `${getTutorHost()}/tutor?ask=${encodeURIComponent(lesson.title)}`;
   }
 
   // Auto-start path: skip rendering the picker, just kick off
@@ -131,7 +89,7 @@ export function LessonModeModal({
     <div
       role="dialog"
       aria-modal="true"
-      onClick={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       className="tutor-modal-backdrop"
     >
       <div className="tutor-modal" onClick={(e) => e.stopPropagation()}>
@@ -140,20 +98,20 @@ export function LessonModeModal({
         <p className="tutor-modal__sub">
           {lesson.slug && lesson.cached
             ? 'Cached — instant start.'
-            : "Not cached yet — we'll generate the first beat for you (~30–60s)."}
+            : 'Click Start. The intro audio plays right away while we generate the first beat.'}
         </p>
 
         {!autoStart && (
           <>
             <ModeOption
               checked={mode === 'walkthrough'}
-              onSelect={() => !busy && setMode('walkthrough')}
+              onSelect={() => setMode('walkthrough')}
               title='"You teach, I learn."'
               desc="Tutor narrates every step. Watch the board, listen along, ask tangents anytime. Default mode."
             />
             <ModeOption
               checked={mode === 'make_me'}
-              onSelect={() => !busy && setMode('make_me')}
+              onSelect={() => setMode('make_me')}
               title='"You guide, I do it."'
               badge="NEW"
               desc="Tutor poses each step as a question. You answer (multiple choice or type). Tutor verifies, comments, and guides forward. Interactive learning."
@@ -161,21 +119,10 @@ export function LessonModeModal({
           </>
         )}
 
-        {(progress || error) && (
-          <div style={{
-            marginTop: 14,
-            fontSize: 13,
-            color: error ? 'var(--tutor-danger)' : 'var(--tutor-muted)',
-          }}>
-            {error || progress}
-          </div>
-        )}
-
         <div className="tutor-modal__actions">
           <button
             type="button"
             onClick={onClose}
-            disabled={busy}
             className="tutor-btn--ghost"
           >
             Cancel
@@ -184,10 +131,9 @@ export function LessonModeModal({
             <button
               type="button"
               onClick={() => start(mode)}
-              disabled={busy}
               className="tutor-btn"
             >
-              {busy ? 'Working…' : 'Start →'}
+              Start →
             </button>
           )}
         </div>
