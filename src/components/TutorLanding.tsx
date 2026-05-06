@@ -7,6 +7,7 @@ import {
   type Problem,
   type WikiSearchResult,
 } from '../services/tutorApi';
+import { LessonModeModal, type ModalLesson } from './LessonModeModal';
 
 export type TutorLandingProps = {
   /** Where to send users when they pick a lesson. Default: `/ai-tutor/{slug}`. */
@@ -129,6 +130,7 @@ export function TutorLanding({
   const [conceptLevel, setConceptLevel] = useState<'all' | 'HS' | 'UG'>('all');
   const [probQuery, setProbQuery] = useState('');
   const [probChip, setProbChip] = useState<'all' | 'HS' | 'UG' | 'Olympiad' | 'cached'>('all');
+  const [modalLesson, setModalLesson] = useState<ModalLesson | null>(null);
 
   const launcher = useLessonLauncher(lessonHref);
 
@@ -237,7 +239,7 @@ export function TutorLanding({
               { value: 'UG',  label: 'UG' },
             ]} />
           </div>
-          <ConceptList topics={topicsResp?.topics || []} q={conceptQuery} level={conceptLevel} hrefBuilder={lessonHref} />
+          <ConceptList topics={topicsResp?.topics || []} q={conceptQuery} level={conceptLevel} onPick={setModalLesson} />
         </Section>
       )}
 
@@ -262,7 +264,7 @@ export function TutorLanding({
               { value: 'cached',   label: '✓' },
             ]} />
           </div>
-          <ProblemList sections={probsResp?.sections || []} q={probQuery} chip={probChip} hrefBuilder={lessonHref} />
+          <ProblemList sections={probsResp?.sections || []} q={probQuery} chip={probChip} onPick={setModalLesson} />
         </Section>
       )}
 
@@ -272,6 +274,14 @@ export function TutorLanding({
             Coming soon — pedagogical skills the tutor can apply (hint laddering, misconception probes, units checks, "explain it back", and more).
           </p>
         </Section>
+      )}
+
+      {modalLesson && (
+        <LessonModeModal
+          lesson={modalLesson}
+          lessonHref={lessonHref}
+          onClose={() => setModalLesson(null)}
+        />
       )}
     </div>
   );
@@ -409,12 +419,12 @@ function PdfDrop({ disabled, onFile }: { disabled: boolean; onFile: (f: File) =>
 }
 
 function ConceptList({
-  topics, q, level, hrefBuilder,
+  topics, q, level, onPick,
 }: {
   topics: LibraryTopic[];
   q: string;
   level: 'all' | 'HS' | 'UG';
-  hrefBuilder: (slug: string) => string;
+  onPick: (l: ModalLesson) => void;
 }) {
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -440,13 +450,20 @@ function ConceptList({
           </h3>
           <div className="tutor-card-grid">
             {t.lessons.map(l => (
-              <a key={l.slug} href={hrefBuilder(l.slug)} className="tutor-card">
+              <button
+                key={l.slug}
+                type="button"
+                onClick={() => onPick({ slug: l.slug, title: l.title, cached: l.cached, guide_cached: l.guide_cached })}
+                className="tutor-card"
+                style={{ textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
+              >
                 <div className="tutor-card__title">{l.title}</div>
                 <div className="tutor-card__meta">
                   <span>{l.level}</span>
                   {l.cached && <span className="tutor-card__cached">✓ cached</span>}
+                  {l.guide_cached && <span style={{ color: 'var(--tutor-warning)' }}>⚡ guide</span>}
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         </div>
@@ -456,12 +473,12 @@ function ConceptList({
 }
 
 function ProblemList({
-  sections, q, chip, hrefBuilder,
+  sections, q, chip, onPick,
 }: {
   sections: { name: string; icon: string; problems: Problem[] }[];
   q: string;
   chip: 'all' | 'HS' | 'UG' | 'Olympiad' | 'cached';
-  hrefBuilder: (slug: string) => string;
+  onPick: (l: ModalLesson) => void;
 }) {
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
@@ -489,7 +506,13 @@ function ProblemList({
             <span className="tutor-tab__count">({section.problems.length})</span>
           </h3>
           {section.problems.slice(0, 50).map(p => (
-            <a key={p.slug} href={hrefBuilder(p.slug)} className="tutor-prob">
+            <button
+              key={p.slug}
+              type="button"
+              onClick={() => onPick({ slug: p.slug, title: p.title, cached: p.cached, guide_cached: (p as any).guide_cached })}
+              className="tutor-prob"
+              style={{ textAlign: 'left', font: 'inherit', cursor: 'pointer', display: 'block', width: '100%' }}
+            >
               <div className="tutor-prob__head">
                 <span className="tutor-prob__title">{p.title}</span>
                 {p.difficulty && (
@@ -499,7 +522,7 @@ function ProblemList({
                 {p.source && <span style={{ fontSize: '0.7rem', color: 'var(--tutor-muted)' }}>· {p.source}</span>}
               </div>
               {p.statement && <div className="tutor-prob__statement">{p.statement}</div>}
-            </a>
+            </button>
           ))}
         </div>
       ))}

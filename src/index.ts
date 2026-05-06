@@ -8,6 +8,12 @@ export type { TutorLandingProps } from './components/TutorLanding';
 export { TutorButton } from './components/TutorButton';
 export type { TutorButtonProps } from './components/TutorButton';
 
+export { LessonModeModal } from './components/LessonModeModal';
+export type { LessonModeModalProps, LessonMode, ModalLesson } from './components/LessonModeModal';
+
+export { AskTutorButton } from './components/AskTutorButton';
+export type { AskTutorButtonProps } from './components/AskTutorButton';
+
 export {
   configureTutor,
   getTutorHost,

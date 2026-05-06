@@ -9,7 +9,7 @@ Used by **olympiz.ai**, **superstem.ai**, **fermi.ai**.
 ## Install
 
 ```bash
-npm i github:mukesh-bansal/canvasa-tutor-react#v0.1.0
+npm i github:mukesh-bansal/canvasa-tutor-react#v0.1.2
 ```
 
 (Replace the git URL when the repo lands on its final remote.)
