@@ -10,9 +10,10 @@ import {
 } from '../services/tutorApi';
 import { LessonModeModal, type ModalLesson } from './LessonModeModal';
 
-// v0.1.4 (Olympiz v2.02 · 2026-05-19): umbrella version pill, visible top-right.
+// v0.1.5 (Olympiz v2.03 · 2026-05-19): umbrella version pill, visible top-right.
 // Bump on every shipped UX change so cache state is observable at a glance.
-export const OLYMPIZ_VERSION = '2.02';
+// v2.03: fix KaTeX import path so $M$ actually renders + dedupe React keys.
+export const OLYMPIZ_VERSION = '2.03';
 
 // v0.1.4: KaTeX auto-render for problem statements ($M$ etc.). Loaded lazily so
 // the package doesn't force a peer dep — host must have `katex` installed.
@@ -21,8 +22,11 @@ let _renderMath: RenderMathInElement | null = null;
 async function ensureKatex(): Promise<RenderMathInElement | null> {
   if (_renderMath) return _renderMath;
   try {
+    // v0.1.5: correct package subpath. `katex/contrib/auto-render` resolves
+    // to node_modules/katex/contrib/auto-render/auto-render.mjs via the
+    // package's exports map. Earlier `auto-render/auto-render.js` failed.
     // @ts-ignore — katex auto-render module ships without types
-    const mod = await import('katex/contrib/auto-render/auto-render.js');
+    const mod = await import('katex/contrib/auto-render');
     // @ts-ignore — KaTeX CSS, side-effect import for the math glyphs
     await import('katex/dist/katex.min.css');
     _renderMath = (mod.default || mod) as RenderMathInElement;
@@ -541,7 +545,8 @@ function ConceptList({
               <div className="tutor-card-grid">
                 {t.lessons.map(l => (
                   <button
-                    key={l.slug}
+                    // v0.1.5: scope key by topic so a slug appearing in 2 topics doesn't collide.
+                    key={t.name + '::' + l.slug}
                     type="button"
                     onClick={() => onPick({ slug: l.slug, title: l.title, cached: l.cached, guide_cached: l.guide_cached })}
                     className="tutor-card"
@@ -635,7 +640,8 @@ function ProblemList({
             {!isCollapsed && section.problems.map(p => (
               // v0.1.4: removed .slice(0, 50) cap — show all problems per section.
               <button
-                key={p.slug}
+                // v0.1.5: scope key by section so a slug appearing in 2 sections doesn't collide.
+                key={section.name + '::' + p.slug}
                 type="button"
                 onClick={() => onPick({ slug: p.slug, title: p.title, cached: p.cached, guide_cached: (p as any).guide_cached })}
                 className="tutor-prob"
