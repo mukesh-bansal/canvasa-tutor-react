@@ -10,11 +10,11 @@ import {
 } from '../services/tutorApi';
 import { LessonModeModal, type ModalLesson } from './LessonModeModal';
 
-// v0.1.6 (Olympiz v2.04 · 2026-05-19): umbrella version pill, visible top-right.
+// v0.1.7 (Olympiz v2.05 · 2026-05-19): umbrella version pill, visible top-right.
 // v2.04: KaTeX picks up window.renderMathInElement from a host <script> tag
 // (more reliable than the dynamic import), polls for ~3s on first mount,
 // keys include array index so duplicate backend slugs don't crash React.
-export const OLYMPIZ_VERSION = '2.04';
+export const OLYMPIZ_VERSION = '2.05';
 
 // v0.1.4: KaTeX auto-render for problem statements ($M$ etc.). Loaded lazily so
 // the package doesn't force a peer dep — host must have `katex` installed.
@@ -82,7 +82,11 @@ function useKatexRender(ref: React.RefObject<HTMLElement>, deps: unknown[]) {
             { left: '\\[', right: '\\]', display: true },
           ],
           throwOnError: false,
-          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'button'],
+          // v0.1.6: NB — 'button' is intentionally NOT in ignoredTags. The
+          // ProblemList renders each problem as a <button> for click handling,
+          // and the statement div lives INSIDE that button. With 'button'
+          // excluded, KaTeX walks into buttons and renders the math.
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
         });
       });
     }
