@@ -19,6 +19,11 @@ export default defineConfig({
         'react-router-dom',
         '@tanstack/react-query',
         'axios',
+        // v0.1.4: katex is an OPTIONAL peer dep. Host (Olympiz / SuperStem)
+        // already installs it; we externalize so we don't bundle a duplicate.
+        // If the host doesn't have katex, our useKatexRender hook silently
+        // no-ops and statements render as raw text.
+        /^katex(\/.*)?$/,
       ],
       output: {
         assetFileNames: (asset) => {

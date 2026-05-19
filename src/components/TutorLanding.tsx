@@ -9,6 +9,53 @@ import {
 } from '../services/tutorApi';
 import { LessonModeModal, type ModalLesson } from './LessonModeModal';
 
+// v0.1.4 (Olympiz v2.02 · 2026-05-19): umbrella version pill, visible top-right.
+// Bump on every shipped UX change so cache state is observable at a glance.
+export const OLYMPIZ_VERSION = '2.02';
+
+// v0.1.4: KaTeX auto-render for problem statements ($M$ etc.). Loaded lazily so
+// the package doesn't force a peer dep — host must have `katex` installed.
+type RenderMathInElement = (el: HTMLElement, opts: any) => void;
+let _renderMath: RenderMathInElement | null = null;
+let _katexCssLoaded = false;
+async function ensureKatex(): Promise<RenderMathInElement | null> {
+  if (_renderMath) return _renderMath;
+  try {
+    // @ts-ignore — katex auto-render module ships without types
+    const mod = await import('katex/contrib/auto-render/auto-render.js');
+    // @ts-ignore
+    await import('katex/dist/katex.min.css');
+    _renderMath = (mod.default || mod) as RenderMathInElement;
+    _katexCssLoaded = true;
+    return _renderMath;
+  } catch (e) {
+    // Host without katex installed → silently fail. Statements render as raw text.
+    // eslint-disable-next-line no-console
+    console.warn('[tutor-react] katex auto-render unavailable; raw LaTeX will show', e);
+    return null;
+  }
+}
+function useKatexRender(ref: React.RefObject<HTMLElement>, deps: unknown[]) {
+  useEffect(() => {
+    let cancelled = false;
+    ensureKatex().then(render => {
+      if (cancelled || !render || !ref.current) return;
+      render(ref.current, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '\\[', right: '\\]', display: true },
+        ],
+        throwOnError: false,
+        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'button'],
+      });
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
 export type TutorLandingProps = {
   /** Where to send users when they pick a lesson. Default: `/ai-tutor/{slug}`. */
   lessonHref?: (slug: string) => string;
@@ -19,8 +66,11 @@ export type TutorLandingProps = {
   className?: string;
 };
 
-type LibTab = 'ondemand' | 'concepts' | 'problems' | 'skills';
+// v0.1.4: dropped 'skills' tab. ConceptLevel + ProbChip add 'G' (graduate).
+type LibTab = 'ondemand' | 'concepts' | 'problems';
 type SourceKind = 'internal' | 'external' | 'textbook';
+type ConceptLevel = 'all' | 'HS' | 'UG' | 'G';
+type ProbChip = 'all' | 'HS' | 'UG' | 'G' | 'Olympiad' | 'cached';
 
 const DEFAULT_HREF = (slug: string) => `/ai-tutor/${slug}`;
 
@@ -127,9 +177,9 @@ export function TutorLanding({
   const [tab, setTab] = useState<LibTab>('ondemand');
   const [topic, setTopic] = useState('');
   const [conceptQuery, setConceptQuery] = useState('');
-  const [conceptLevel, setConceptLevel] = useState<'all' | 'HS' | 'UG'>('all');
+  const [conceptLevel, setConceptLevel] = useState<ConceptLevel>('all');
   const [probQuery, setProbQuery] = useState('');
-  const [probChip, setProbChip] = useState<'all' | 'HS' | 'UG' | 'Olympiad' | 'cached'>('all');
+  const [probChip, setProbChip] = useState<ProbChip>('all');
   const [modalLesson, setModalLesson] = useState<ModalLesson | null>(null);
 
   const launcher = useLessonLauncher(lessonHref);
@@ -160,6 +210,23 @@ export function TutorLanding({
 
   return (
     <div className={`tutor-page ${className || ''}`.trim()}>
+      {/* v0.1.4: Olympiz umbrella version pill — fixed top-right, visible regardless of tab.
+          Bump OLYMPIZ_VERSION on every shipped UX change so cache state is observable. */}
+      <div
+        title="Olympiz version. Hard-refresh if this doesn't match the latest deploy."
+        style={{
+          position: 'fixed', top: 10, right: 14, zIndex: 99999,
+          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+          fontSize: 10.5, letterSpacing: '0.06em',
+          padding: '3px 9px', borderRadius: 999,
+          background: 'rgba(255,255,255,0.94)', color: '#46718a',
+          border: '1px solid rgba(70,113,138,0.18)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+          pointerEvents: 'auto', userSelect: 'none',
+        }}>
+        v{OLYMPIZ_VERSION}
+      </div>
+
       <section className="tutor-hero">
         <h1>{heroTitle ?? <>What do you want to <em>learn</em> today?</>}</h1>
         <p>{heroSub ?? 'Drop a question.'}</p>
@@ -177,10 +244,7 @@ export function TutorLanding({
           Problems
           {counts ? <span className="tutor-tab__count">{counts.problems_total.toLocaleString()}</span> : null}
         </Tab>
-        <Tab active={tab === 'skills'} onClick={() => setTab('skills')}>
-          AI tutor skills
-          {counts ? <span className="tutor-tab__count">{counts.skills_total}</span> : null}
-        </Tab>
+        {/* v0.1.4: "AI tutor skills" tab removed per Olympiz UX. */}
       </nav>
 
       {tab === 'ondemand' && (
@@ -237,6 +301,7 @@ export function TutorLanding({
               { value: 'all', label: 'All' },
               { value: 'HS',  label: 'HS' },
               { value: 'UG',  label: 'UG' },
+              { value: 'G',   label: 'G' },
             ]} />
           </div>
           <ConceptList topics={topicsResp?.topics || []} q={conceptQuery} level={conceptLevel} onPick={setModalLesson} />
@@ -260,6 +325,7 @@ export function TutorLanding({
               { value: 'all',      label: 'All' },
               { value: 'HS',       label: 'HS' },
               { value: 'UG',       label: 'UG' },
+              { value: 'G',        label: 'G' },
               { value: 'Olympiad', label: 'Olympiad' },
               { value: 'cached',   label: '✓' },
             ]} />
@@ -268,13 +334,7 @@ export function TutorLanding({
         </Section>
       )}
 
-      {tab === 'skills' && (
-        <Section title="AI tutor skills" subtitle={counts ? `${counts.skills_total} skills` : ''}>
-          <p className="tutor-empty">
-            Coming soon — pedagogical skills the tutor can apply (hint laddering, misconception probes, units checks, "explain it back", and more).
-          </p>
-        </Section>
-      )}
+      {/* v0.1.4: "AI tutor skills" pane removed alongside its tab. */}
 
       {modalLesson && (
         <LessonModeModal
@@ -423,9 +483,11 @@ function ConceptList({
 }: {
   topics: LibraryTopic[];
   q: string;
-  level: 'all' | 'HS' | 'UG';
+  level: ConceptLevel;
   onPick: (l: ModalLesson) => void;
 }) {
+  // v0.1.4: collapsible-per-section state. Default all expanded; user toggles per section.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     return topics.map(t => ({
@@ -442,32 +504,60 @@ function ConceptList({
   if (!filtered.length) return <p className="tutor-empty">No matches.</p>;
   return (
     <div>
-      {filtered.map(t => (
-        <div key={t.name} style={{ marginBottom: 24 }}>
-          <h3>
-            <span>{t.icon}</span> {t.name}
-            <span className="tutor-tab__count">({t.lessons.length})</span>
-          </h3>
-          <div className="tutor-card-grid">
-            {t.lessons.map(l => (
-              <button
-                key={l.slug}
-                type="button"
-                onClick={() => onPick({ slug: l.slug, title: l.title, cached: l.cached, guide_cached: l.guide_cached })}
-                className="tutor-card"
-                style={{ textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
-              >
-                <div className="tutor-card__title">{l.title}</div>
-                <div className="tutor-card__meta">
-                  <span>{l.level}</span>
-                  {l.cached && <span className="tutor-card__cached">✓ cached</span>}
-                  {l.guide_cached && <span style={{ color: 'var(--tutor-warning)' }}>⚡ guide</span>}
-                </div>
-              </button>
-            ))}
+      {filtered.map(t => {
+        const isCollapsed = !!collapsed[t.name];
+        return (
+          <div key={t.name} style={{ marginBottom: 24 }}>
+            <h3
+              role="button"
+              tabIndex={0}
+              aria-expanded={!isCollapsed}
+              onClick={() => setCollapsed(c => ({ ...c, [t.name]: !c[t.name] }))}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setCollapsed(c => ({ ...c, [t.name]: !c[t.name] }));
+                }
+              }}
+              style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 8 }}
+              title={isCollapsed ? 'Click to expand' : 'Click to collapse'}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: 'inline-block', width: '0.7em',
+                  transition: 'transform 0.15s ease',
+                  transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                  color: 'var(--tutor-muted, #5a7c92)',
+                  fontSize: '0.75em',
+                }}
+              >▾</span>
+              <span>{t.icon}</span> {t.name}
+              <span className="tutor-tab__count">({t.lessons.length})</span>
+            </h3>
+            {!isCollapsed && (
+              <div className="tutor-card-grid">
+                {t.lessons.map(l => (
+                  <button
+                    key={l.slug}
+                    type="button"
+                    onClick={() => onPick({ slug: l.slug, title: l.title, cached: l.cached, guide_cached: l.guide_cached })}
+                    className="tutor-card"
+                    style={{ textAlign: 'left', font: 'inherit', cursor: 'pointer' }}
+                  >
+                    <div className="tutor-card__title">{l.title}</div>
+                    <div className="tutor-card__meta">
+                      <span>{l.level}</span>
+                      {l.cached && <span className="tutor-card__cached">✓ cached</span>}
+                      {l.guide_cached && <span style={{ color: 'var(--tutor-warning)' }}>⚡ guide</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -477,9 +567,14 @@ function ProblemList({
 }: {
   sections: { name: string; icon: string; problems: Problem[] }[];
   q: string;
-  chip: 'all' | 'HS' | 'UG' | 'Olympiad' | 'cached';
+  chip: ProbChip;
   onPick: (l: ModalLesson) => void;
 }) {
+  // v0.1.4: collapsible-per-section state.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  // v0.1.4: ref + KaTeX hook so problem statements with $...$ render as math.
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const filtered = useMemo(() => {
     const ql = q.trim().toLowerCase();
     return sections.map(s => ({
@@ -487,6 +582,8 @@ function ProblemList({
       problems: s.problems.filter(p => {
         if (chip === 'HS' && p.level !== 'HS') return false;
         if (chip === 'UG' && p.level !== 'UG') return false;
+        // v0.1.4: 'G' = graduate-level. Backend may tag p.level === 'G' or 'Grad'; accept either.
+        if (chip === 'G'  && p.level !== 'G' && (p.level as string) !== 'Grad') return false;
         if (chip === 'Olympiad' && p.origin !== 'physolympiad') return false;
         if (chip === 'cached' && !p.cached) return false;
         if (ql && !p.title.toLowerCase().includes(ql) && !(p.statement || '').toLowerCase().includes(ql)) return false;
@@ -495,37 +592,67 @@ function ProblemList({
     })).filter(s => s.problems.length > 0);
   }, [sections, q, chip]);
 
+  // Re-render KaTeX whenever the filtered list or collapse state changes.
+  useKatexRender(containerRef as React.RefObject<HTMLElement>, [filtered, collapsed]);
+
   if (!sections.length) return <p className="tutor-empty">Loading…</p>;
   if (!filtered.length) return <p className="tutor-empty">No matches.</p>;
   return (
-    <div>
-      {filtered.map(section => (
-        <div key={section.name} style={{ marginBottom: 24 }}>
-          <h3>
-            <span>{section.icon}</span> {section.name}
-            <span className="tutor-tab__count">({section.problems.length})</span>
-          </h3>
-          {section.problems.slice(0, 50).map(p => (
-            <button
-              key={p.slug}
-              type="button"
-              onClick={() => onPick({ slug: p.slug, title: p.title, cached: p.cached, guide_cached: (p as any).guide_cached })}
-              className="tutor-prob"
-              style={{ textAlign: 'left', font: 'inherit', cursor: 'pointer', display: 'block', width: '100%' }}
+    <div ref={containerRef}>
+      {filtered.map(section => {
+        const isCollapsed = !!collapsed[section.name];
+        return (
+          <div key={section.name} style={{ marginBottom: 24 }}>
+            <h3
+              role="button"
+              tabIndex={0}
+              aria-expanded={!isCollapsed}
+              onClick={() => setCollapsed(c => ({ ...c, [section.name]: !c[section.name] }))}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setCollapsed(c => ({ ...c, [section.name]: !c[section.name] }));
+                }
+              }}
+              style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: 8 }}
+              title={isCollapsed ? 'Click to expand' : 'Click to collapse'}
             >
-              <div className="tutor-prob__head">
-                <span className="tutor-prob__title">{p.title}</span>
-                {p.difficulty && (
-                  <span className={`tutor-pill tutor-pill--${p.difficulty}`}>{p.difficulty}</span>
-                )}
-                {p.level && <span className="tutor-pill">{p.level}</span>}
-                {p.source && <span style={{ fontSize: '0.7rem', color: 'var(--tutor-muted)' }}>· {p.source}</span>}
-              </div>
-              {p.statement && <div className="tutor-prob__statement">{p.statement}</div>}
-            </button>
-          ))}
-        </div>
-      ))}
+              <span
+                aria-hidden="true"
+                style={{
+                  display: 'inline-block', width: '0.7em',
+                  transition: 'transform 0.15s ease',
+                  transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                  color: 'var(--tutor-muted, #5a7c92)',
+                  fontSize: '0.75em',
+                }}
+              >▾</span>
+              <span>{section.icon}</span> {section.name}
+              <span className="tutor-tab__count">({section.problems.length})</span>
+            </h3>
+            {!isCollapsed && section.problems.map(p => (
+              // v0.1.4: removed .slice(0, 50) cap — show all problems per section.
+              <button
+                key={p.slug}
+                type="button"
+                onClick={() => onPick({ slug: p.slug, title: p.title, cached: p.cached, guide_cached: (p as any).guide_cached })}
+                className="tutor-prob"
+                style={{ textAlign: 'left', font: 'inherit', cursor: 'pointer', display: 'block', width: '100%' }}
+              >
+                <div className="tutor-prob__head">
+                  <span className="tutor-prob__title">{p.title}</span>
+                  {p.difficulty && (
+                    <span className={`tutor-pill tutor-pill--${p.difficulty}`}>{p.difficulty}</span>
+                  )}
+                  {p.level && <span className="tutor-pill">{p.level}</span>}
+                  {p.source && <span style={{ fontSize: '0.7rem', color: 'var(--tutor-muted)' }}>· {p.source}</span>}
+                </div>
+                {p.statement && <div className="tutor-prob__statement">{p.statement}</div>}
+              </button>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }
