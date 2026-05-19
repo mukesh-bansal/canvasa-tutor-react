@@ -10,50 +10,83 @@ import {
 } from '../services/tutorApi';
 import { LessonModeModal, type ModalLesson } from './LessonModeModal';
 
-// v0.1.5 (Olympiz v2.03 · 2026-05-19): umbrella version pill, visible top-right.
-// Bump on every shipped UX change so cache state is observable at a glance.
-// v2.03: fix KaTeX import path so $M$ actually renders + dedupe React keys.
-export const OLYMPIZ_VERSION = '2.03';
+// v0.1.6 (Olympiz v2.04 · 2026-05-19): umbrella version pill, visible top-right.
+// v2.04: KaTeX picks up window.renderMathInElement from a host <script> tag
+// (more reliable than the dynamic import), polls for ~3s on first mount,
+// keys include array index so duplicate backend slugs don't crash React.
+export const OLYMPIZ_VERSION = '2.04';
 
 // v0.1.4: KaTeX auto-render for problem statements ($M$ etc.). Loaded lazily so
 // the package doesn't force a peer dep — host must have `katex` installed.
 type RenderMathInElement = (el: HTMLElement, opts: any) => void;
 let _renderMath: RenderMathInElement | null = null;
+
+/**
+ * v0.1.6: KaTeX resolution — TWO routes, in priority order:
+ *   (a) `window.renderMathInElement` (host loaded katex auto-render via
+ *       <script> tag in index.html — proven canvas-a pattern, robust to
+ *       Vite optimizeDeps quirks).
+ *   (b) Dynamic `import('katex/contrib/auto-render')` — fallback for hosts
+ *       that have `katex` as an npm dep but no script tag. Requires the
+ *       host's bundler to resolve the subpath; sometimes flaky.
+ *
+ * If neither resolves, the statements render as raw text and we console.warn.
+ * Hosts that want guaranteed math rendering should add to their index.html:
+ *
+ *   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" crossorigin>
+ *   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js" crossorigin></script>
+ *   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" crossorigin></script>
+ */
 async function ensureKatex(): Promise<RenderMathInElement | null> {
   if (_renderMath) return _renderMath;
+  // (a) Global from <script> tag
+  // @ts-ignore — host script tag attaches to window
+  if (typeof window !== 'undefined' && typeof (window as any).renderMathInElement === 'function') {
+    // @ts-ignore
+    _renderMath = (window as any).renderMathInElement as RenderMathInElement;
+    return _renderMath;
+  }
+  // (b) ESM dynamic import — last resort
   try {
-    // v0.1.5: correct package subpath. `katex/contrib/auto-render` resolves
-    // to node_modules/katex/contrib/auto-render/auto-render.mjs via the
-    // package's exports map. Earlier `auto-render/auto-render.js` failed.
     // @ts-ignore — katex auto-render module ships without types
     const mod = await import('katex/contrib/auto-render');
-    // @ts-ignore — KaTeX CSS, side-effect import for the math glyphs
+    // @ts-ignore — KaTeX CSS side-effect import for the math glyphs
     await import('katex/dist/katex.min.css');
     _renderMath = (mod.default || mod) as RenderMathInElement;
     return _renderMath;
   } catch (e) {
-    // Host without katex installed → silently fail. Statements render as raw text.
     // eslint-disable-next-line no-console
-    console.warn('[tutor-react] katex auto-render unavailable; raw LaTeX will show', e);
+    console.warn('[tutor-react] katex auto-render unavailable (no global, no ESM); raw LaTeX will show. Add the CDN <script> tags from the JSDoc comment to enable.', e);
     return null;
   }
 }
 function useKatexRender(ref: React.RefObject<HTMLElement>, deps: unknown[]) {
   useEffect(() => {
     let cancelled = false;
-    ensureKatex().then(render => {
-      if (cancelled || !render || !ref.current) return;
-      render(ref.current, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$',  right: '$',  display: false },
-          { left: '\\(', right: '\\)', display: false },
-          { left: '\\[', right: '\\]', display: true },
-        ],
-        throwOnError: false,
-        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'button'],
+    // Re-poll up to ~3 s for window.renderMathInElement if the host's
+    // CDN <script defer> hasn't landed when the component first mounts.
+    let attempt = 0;
+    function tryRender() {
+      if (cancelled) return;
+      ensureKatex().then(render => {
+        if (cancelled) return;
+        if (!render || !ref.current) {
+          if (attempt++ < 15) setTimeout(tryRender, 200);
+          return;
+        }
+        render(ref.current, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$',  right: '$',  display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true },
+          ],
+          throwOnError: false,
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'button'],
+        });
       });
-    });
+    }
+    tryRender();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
@@ -543,10 +576,12 @@ function ConceptList({
             </h3>
             {!isCollapsed && (
               <div className="tutor-card-grid">
-                {t.lessons.map(l => (
+                {t.lessons.map((l, idx) => (
                   <button
-                    // v0.1.5: scope key by topic so a slug appearing in 2 topics doesn't collide.
-                    key={t.name + '::' + l.slug}
+                    // v0.1.6: key includes idx — same reason as ProblemList: backend
+                    // can return the same slug twice within a topic (data bug, but
+                    // we tolerate it on the React side rather than crash).
+                    key={t.name + '::' + l.slug + '::' + idx}
                     type="button"
                     onClick={() => onPick({ slug: l.slug, title: l.title, cached: l.cached, guide_cached: l.guide_cached })}
                     className="tutor-card"
@@ -637,11 +672,14 @@ function ProblemList({
               <span>{section.icon}</span> {section.name}
               <span className="tutor-tab__count">({section.problems.length})</span>
             </h3>
-            {!isCollapsed && section.problems.map(p => (
+            {!isCollapsed && section.problems.map((p, idx) => (
               // v0.1.4: removed .slice(0, 50) cap — show all problems per section.
               <button
-                // v0.1.5: scope key by section so a slug appearing in 2 sections doesn't collide.
-                key={section.name + '::' + p.slug}
+                // v0.1.6: key includes idx — backend occasionally returns the same
+                // slug twice within one section (e.g. variational-method-for-particle-
+                // in-linear-potential under "Forces & Newton's Laws"). Index makes
+                // the key uniquely identify the row even with duplicate slugs.
+                key={section.name + '::' + p.slug + '::' + idx}
                 type="button"
                 onClick={() => onPick({ slug: p.slug, title: p.title, cached: p.cached, guide_cached: (p as any).guide_cached })}
                 className="tutor-prob"
