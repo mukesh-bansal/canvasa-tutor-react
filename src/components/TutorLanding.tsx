@@ -18,16 +18,14 @@ export const OLYMPIZ_VERSION = '2.02';
 // the package doesn't force a peer dep — host must have `katex` installed.
 type RenderMathInElement = (el: HTMLElement, opts: any) => void;
 let _renderMath: RenderMathInElement | null = null;
-let _katexCssLoaded = false;
 async function ensureKatex(): Promise<RenderMathInElement | null> {
   if (_renderMath) return _renderMath;
   try {
     // @ts-ignore — katex auto-render module ships without types
     const mod = await import('katex/contrib/auto-render/auto-render.js');
-    // @ts-ignore
+    // @ts-ignore — KaTeX CSS, side-effect import for the math glyphs
     await import('katex/dist/katex.min.css');
     _renderMath = (mod.default || mod) as RenderMathInElement;
-    _katexCssLoaded = true;
     return _renderMath;
   } catch (e) {
     // Host without katex installed → silently fail. Statements render as raw text.
