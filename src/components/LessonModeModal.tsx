@@ -54,14 +54,20 @@ export function LessonModeModal({
   }, []);
 
   function start(m: LessonMode) {
+    // v0.1.4 (was: host patch in @canvasa+tutor-react+0.1.3.patch — now upstream):
+    // `&return=<host>/study` overrides canvas-a's Home button so the user returns
+    // to the host study surface, not canvas-a's landing page.
+    const RETURN_URL = `${window.location.origin}/study`;
+    const ret = `&return=${encodeURIComponent(RETURN_URL)}`;
+
     // Make-me — always go to canvasa /guide?lesson=<slug>; backend handles cached + uncached.
     if (m === 'make_me') {
       if (!lesson.slug) {
         // No slug — can't address /guide directly. Fall through to walkthrough live mode.
-        window.location.href = `${getTutorHost()}/tutor?ask=${encodeURIComponent(lesson.title)}`;
+        window.location.href = `${getTutorHost()}/tutor?ask=${encodeURIComponent(lesson.title)}${ret}`;
         return;
       }
-      window.location.href = `${getTutorHost()}/guide?lesson=${encodeURIComponent(lesson.slug)}`;
+      window.location.href = `${getTutorHost()}/guide?lesson=${encodeURIComponent(lesson.slug)}${ret}`;
       return;
     }
 
@@ -76,7 +82,7 @@ export function LessonModeModal({
     // audio while server-side generation runs, then transitions to beat 1 with
     // beat audio. Doing this client-side (POST /generate-lesson + poll + nav)
     // makes the user wait silently and skips the intro audio entirely.
-    window.location.href = `${getTutorHost()}/tutor?ask=${encodeURIComponent(lesson.title)}`;
+    window.location.href = `${getTutorHost()}/tutor?ask=${encodeURIComponent(lesson.title)}${ret}`;
   }
 
   // Auto-start path: skip rendering the picker, just kick off

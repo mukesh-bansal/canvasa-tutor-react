@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   tutorEndpoints,
   searchResultBlurb,
+  getTutorHost,
   type Topic as LibraryTopic,
   type Problem,
   type WikiSearchResult,
@@ -67,8 +68,9 @@ export type TutorLandingProps = {
 };
 
 // v0.1.4: dropped 'skills' tab. ConceptLevel + ProbChip add 'G' (graduate).
+// 'textbook' source removed upstream (was a host patch — see 2026-05-09 backlog).
 type LibTab = 'ondemand' | 'concepts' | 'problems';
-type SourceKind = 'internal' | 'external' | 'textbook';
+type SourceKind = 'internal' | 'external';
 type ConceptLevel = 'all' | 'HS' | 'UG' | 'G';
 type ProbChip = 'all' | 'HS' | 'UG' | 'G' | 'Olympiad' | 'cached';
 
@@ -126,28 +128,26 @@ function useLessonLauncher(hrefBuilder: (slug: string) => string) {
     }
   }
 
-  async function launchTopic(topic: string) {
-    setError(''); setProgress('Starting…'); setBusy(true);
-    try {
-      const res = await tutorEndpoints.generateLesson(topic);
-      const slug = slugFromUrl(res.ready_url);
-      if (slug) { navigate(slug); return; }
-      poll(res.session_id);
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || e?.message || 'Generation failed'); setBusy(false);
-    }
+  // v0.1.4 (was: host patch — now upstream): route-to-destination-first.
+  // Launcher hands off to canvas-a's /tutor?ask=<title> page, which plays the
+  // hello narration instantly and runs the build in the background — never poll
+  // here. `&return=<host>/study` sends the user back to the SuperStem study
+  // surface from canvas-a's Home button.
+  const RETURN_URL = `${window.location.origin}/study`;
+
+  function launchTopic(topic: string) {
+    setError(''); setProgress('Opening tutor…'); setBusy(true);
+    window.location.replace(
+      `${getTutorHost()}/tutor?ask=${encodeURIComponent(topic)}&return=${encodeURIComponent(RETURN_URL)}`,
+    );
   }
 
-  async function launchUrl(url: string, title?: string) {
-    setError(''); setProgress('Reading source…'); setBusy(true);
-    try {
-      const res = await tutorEndpoints.generateFromUrl(url, title);
-      const slug = slugFromUrl(res.ready_url);
-      if (slug) { navigate(slug); return; }
-      poll(res.session_id);
-    } catch (e: any) {
-      setError(e?.response?.data?.detail || e?.message || 'Source failed'); setBusy(false);
-    }
+  function launchUrl(url: string, title?: string) {
+    setError(''); setProgress('Opening tutor…'); setBusy(true);
+    const ask = (title && title.trim()) || url;
+    window.location.replace(
+      `${getTutorHost()}/tutor?ask=${encodeURIComponent(ask)}&return=${encodeURIComponent(RETURN_URL)}`,
+    );
   }
 
   async function launchPdf(file: File) {
@@ -386,7 +386,7 @@ function ChipGroup<T extends string>({ value, onChange, options }: {
 }
 
 function SourcePicker({ disabled, onPick }: { disabled: boolean; onPick: (url: string, title?: string) => void }) {
-  const [src, setSrc] = useState<SourceKind>('textbook');
+  const [src, setSrc] = useState<SourceKind>('internal');
   const [q, setQ] = useState('');
   const [results, setResults] = useState<WikiSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -407,10 +407,14 @@ function SourcePicker({ disabled, onPick }: { disabled: boolean; onPick: (url: s
     }, 300);
   }, [q, src]);
 
+  // v0.1.4 (was: host patch — now upstream): "Textbook chapter" removed. The
+  // SourcePicker had it wired to the same superstem-search endpoint as Internal
+  // wiki, which returns Physics-Wiki entries and never actual textbook chapters
+  // (poisoned UUID-titled rows leaked through). Re-add only when a real
+  // textbook-chapter search endpoint exists with proper chapter titles.
   const sources: { key: SourceKind; lbl: string; sub: string }[] = [
-    { key: 'internal', lbl: 'Internal wiki',    sub: 'SuperStem Physics + AI + HS concept graphs' },
-    { key: 'external', lbl: 'External wiki',    sub: 'Wikipedia — live' },
-    { key: 'textbook', lbl: 'Textbook chapter', sub: 'SuperStem library — chapters across textbooks' },
+    { key: 'internal', lbl: 'Internal wiki', sub: 'SuperStem Physics + AI + HS concept graphs' },
+    { key: 'external', lbl: 'External wiki', sub: 'Wikipedia — live' },
   ];
 
   return (
@@ -448,7 +452,7 @@ function SourcePicker({ disabled, onPick }: { disabled: boolean; onPick: (url: s
         </div>
       )}
       <div className="tutor-hint">
-        Searches across SuperStem Physics Wiki (1400+ articles) · AI Wiki · HS Physics/Math/Chemistry concept graphs · Olympiad textbook chapters.
+        Searches across SuperStem Physics Wiki (1400+ articles) · AI Wiki · HS Physics/Math/Chemistry concept graphs.
       </div>
     </Section>
   );
