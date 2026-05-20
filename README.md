@@ -1,3 +1,22 @@
+# DEPRECATED — moved to `mukesh-bansal/olympiz`
+
+This repository has been folded into the **Olympiz monorepo** at
+[mukesh-bansal/olympiz](https://github.com/mukesh-bansal/olympiz) on 2026-05-20
+as part of the consolidation mandate.
+
+**New location:** `mukesh-bansal/olympiz/packages/canvasa-react/`
+
+History was rewritten via `git filter-repo --to-subdirectory-filter` and
+merged with `--allow-unrelated-histories` so blame is preserved at the
+new path. All tags were carried over.
+
+This repo is now **archived** (read-only). For new work, file PRs against
+`mukesh-bansal/olympiz`.
+
+---
+
+(Legacy README preserved below for reference.)
+
 # @canvasa/tutor-react
 
 Embeddable AI Tutor — drop-in React landing + button. Backend stays on Canvas A; this package is just the host-side UI.
