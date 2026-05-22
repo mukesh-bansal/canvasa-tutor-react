@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getTutorHost } from '../services/tutorApi';
+import { resolveReturnUrl } from '../services/returnUrl';
 
 export type LessonMode = 'walkthrough' | 'make_me';
 
@@ -54,10 +55,10 @@ export function LessonModeModal({
   }, []);
 
   function start(m: LessonMode) {
-    // v0.1.4 (was: host patch in @canvasa+tutor-react+0.1.3.patch — now upstream):
-    // `&return=<host>/study` overrides canvas-a's Home button so the user returns
-    // to the host study surface, not canvas-a's landing page.
-    const RETURN_URL = `${window.location.origin}/study`;
+    // v0.1.8: read `?return=` from the host's URL first (so hosts like SuperStem
+    // can deep-link the user back to `/ai-tutor` etc. without manual threading);
+    // fall back to `<origin>/study` if not present. See services/returnUrl.ts.
+    const RETURN_URL = resolveReturnUrl();
     const ret = `&return=${encodeURIComponent(RETURN_URL)}`;
 
     // Make-me — always go to canvasa /guide?lesson=<slug>; backend handles cached + uncached.

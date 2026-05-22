@@ -1,6 +1,6 @@
 {
   "name": "@canvasa/tutor-react",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Embeddable AI Tutor \u2014 React components + API client. Host-themed via CSS variables.",
   "type": "module",
   "main": "./dist/tutor-react.js",
@@ -21,7 +21,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build",
     "typecheck": "tsc --noEmit",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "prepare": "npm run build"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

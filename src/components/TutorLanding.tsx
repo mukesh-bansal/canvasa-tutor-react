@@ -9,6 +9,7 @@ import {
   type WikiSearchResult,
 } from '../services/tutorApi';
 import { LessonModeModal, type ModalLesson } from './LessonModeModal';
+import { resolveReturnUrl } from '../services/returnUrl';
 
 // v0.1.7 (Olympiz v2.05 · 2026-05-19): umbrella version pill, visible top-right.
 // v2.04: KaTeX picks up window.renderMathInElement from a host <script> tag
@@ -167,12 +168,11 @@ function useLessonLauncher(hrefBuilder: (slug: string) => string) {
     }
   }
 
-  // v0.1.4 (was: host patch — now upstream): route-to-destination-first.
-  // Launcher hands off to canvas-a's /tutor?ask=<title> page, which plays the
-  // hello narration instantly and runs the build in the background — never poll
-  // here. `&return=<host>/study` sends the user back to the SuperStem study
-  // surface from canvas-a's Home button.
-  const RETURN_URL = `${window.location.origin}/study`;
+  // v0.1.8: return-URL resolution moved into a shared helper that first
+  // checks for a `?return=` already on the host page's URL (so e.g. SuperStem
+  // can deep-link the user to /ai-tutor with `?return=...` and the SDK picks
+  // it up without manual threading), then falls back to `<origin>/study`.
+  const RETURN_URL = resolveReturnUrl();
 
   function launchTopic(topic: string) {
     setError(''); setProgress('Opening tutor…'); setBusy(true);
@@ -244,7 +244,13 @@ export function TutorLanding({
   function handleTopicGo() {
     const t = topic.trim();
     if (!t) return;
-    launcher.launchTopic(t);
+    // v0.1.9: route the topic-launch through LessonModeModal so the user sees
+    // the same mode-picker interstitial as the concept-library / problem-library
+    // entry points. LessonModeModal.start() handles the no-slug case correctly —
+    // falls through to `/tutor?ask=${title}&return=...` when lesson.slug is
+    // absent (LessonModeModal.tsx:65–71). Previously this called
+    // launcher.launchTopic(t) directly, which skipped the modal entirely.
+    setModalLesson({ title: t });
   }
 
   return (
