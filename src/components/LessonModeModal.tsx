@@ -2,24 +2,56 @@ import { useEffect, useState } from 'react';
 import { getTutorHost } from '../services/tutorApi';
 import { resolveReturnUrl } from '../services/returnUrl';
 
-export type LessonMode = 'walkthrough' | 'make_me';
+/**
+ * Tutor learning modes — v0.1.10 rename + new "Together" mode.
+ *
+ * v0.1.10 renames the two existing modes for clarity and adds a third:
+ *   • `lecture`   — tutor narrates every step beat-by-beat (was `walkthrough`)
+ *   • `guide`     — tutor poses each step as a question (was `make_me`)
+ *   • `together`  — tutor + student trade turns through the problem (NEW)
+ *
+ * The legacy slugs `walkthrough` and `make_me` remain accepted in the type
+ * union and are normalized to the new names inside `start()`. Hosts pinned
+ * to v0.1.9 or earlier keep working without code changes for at least one
+ * minor version; we'll drop the aliases in v0.2.
+ *
+ * `together` is currently a PLACEHOLDER that routes to the same /guide URL
+ * as `guide` — Mukesh will wire the real backend experience in a later
+ * release. The modal option is live now so consuming hosts can light up
+ * the third radio + future-proof their feature flags.
+ */
+export type LessonMode =
+  | 'lecture'
+  | 'guide'
+  | 'together'
+  /** @deprecated use 'lecture' — removed in v0.2 */
+  | 'walkthrough'
+  /** @deprecated use 'guide' — removed in v0.2 */
+  | 'make_me';
+
+/** Normalize legacy slugs to the v0.1.10 names. */
+function canonicalMode(m: LessonMode): 'lecture' | 'guide' | 'together' {
+  if (m === 'walkthrough') return 'lecture';
+  if (m === 'make_me') return 'guide';
+  return m;
+}
 
 export type ModalLesson = {
   /** Cached lesson slug (must match the backend's lesson file). Optional for free-form topic launches. */
   slug?: string;
   /** Display title shown in the modal header. Used as the topic when generating a fresh lesson. */
   title: string;
-  /** True if the walkthrough lesson is pre-generated. */
+  /** True if the lecture (formerly walkthrough) lesson is pre-generated. */
   cached?: boolean;
-  /** True if Mode 2 (make_me) skeleton is pre-generated. */
+  /** True if the guide-mode (formerly make_me) skeleton is pre-generated. */
   guide_cached?: boolean;
 };
 
 export type LessonModeModalProps = {
   lesson: ModalLesson;
-  /** Where to navigate when a cached walkthrough is picked. Default: `/ai-tutor/<slug>`. */
+  /** Where to navigate when a cached lecture is picked. Default: `/ai-tutor/<slug>`. */
   lessonHref?: (slug: string) => string;
-  /** Pre-select a mode. Default `walkthrough`. */
+  /** Pre-select a mode. Default `lecture`. */
   defaultMode?: LessonMode;
   /** If set, skip the modal entirely and start in this mode immediately. */
   autoStart?: LessonMode;
@@ -33,7 +65,7 @@ const DEFAULT_HREF = (slug: string) => `/ai-tutor/${encodeURIComponent(slug)}`;
 export function LessonModeModal({
   lesson,
   lessonHref = DEFAULT_HREF,
-  defaultMode = 'walkthrough',
+  defaultMode = 'lecture',
   autoStart,
   eyebrow = 'Pick a learning mode',
   onClose,
@@ -54,17 +86,18 @@ export function LessonModeModal({
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  function start(m: LessonMode) {
-    // v0.1.8: read `?return=` from the host's URL first (so hosts like SuperStem
-    // can deep-link the user back to `/ai-tutor` etc. without manual threading);
-    // fall back to `<origin>/study` if not present. See services/returnUrl.ts.
+  function start(input: LessonMode) {
+    const m = canonicalMode(input);
     const RETURN_URL = resolveReturnUrl();
     const ret = `&return=${encodeURIComponent(RETURN_URL)}`;
 
-    // Make-me — always go to canvasa /guide?lesson=<slug>; backend handles cached + uncached.
-    if (m === 'make_me') {
+    // `guide` and `together` both route to canvasa /guide?lesson=<slug> for now.
+    // When Mukesh wires the real Together experience, it gets its own route
+    // (likely /together?lesson=<slug>) and this branch splits. Hosts won't
+    // need to change anything when that happens — the SDK absorbs the switch.
+    if (m === 'guide' || m === 'together') {
       if (!lesson.slug) {
-        // No slug — can't address /guide directly. Fall through to walkthrough live mode.
+        // No slug — can't address /guide directly. Fall through to live-build via /tutor.
         window.location.href = `${getTutorHost()}/tutor?ask=${encodeURIComponent(lesson.title)}${ret}`;
         return;
       }
@@ -72,13 +105,13 @@ export function LessonModeModal({
       return;
     }
 
-    // Walkthrough + cached — clean host URL, host's redirect/proxy points to canvasa runtime.
+    // Lecture + cached — clean host URL, host's redirect/proxy points to canvasa runtime.
     if (lesson.slug && lesson.cached) {
       window.location.href = lessonHref(lesson.slug);
       return;
     }
 
-    // Walkthrough + uncached — navigate IMMEDIATELY to canvas-a's live-mode entry.
+    // Lecture + uncached — navigate IMMEDIATELY to canvas-a's live-mode entry.
     // /tutor?ask=<title> plays the hello narration on page load, then bridging
     // audio while server-side generation runs, then transitions to beat 1 with
     // beat audio. Doing this client-side (POST /generate-lesson + poll + nav)
@@ -91,6 +124,8 @@ export function LessonModeModal({
     if (autoStart) { start(autoStart); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const canonical = canonicalMode(mode);
 
   return (
     <div
@@ -111,17 +146,26 @@ export function LessonModeModal({
         {!autoStart && (
           <>
             <ModeOption
-              checked={mode === 'walkthrough'}
-              onSelect={() => setMode('walkthrough')}
-              title='"You teach, I learn."'
-              desc="Tutor narrates every step. Watch the board, listen along, ask tangents anytime. Default mode."
+              checked={canonical === 'lecture'}
+              onSelect={() => setMode('lecture')}
+              title='Lecture'
+              tagline='"You teach, I learn."'
+              desc="Tutor narrates every step beat-by-beat. Watch the board, listen along, ask tangents anytime. Default mode."
             />
             <ModeOption
-              checked={mode === 'make_me'}
-              onSelect={() => setMode('make_me')}
-              title='"You guide, I do it."'
+              checked={canonical === 'guide'}
+              onSelect={() => setMode('guide')}
+              title='Guide'
+              tagline='"You guide, I do it."'
+              desc="Tutor poses each step as a question. You answer (multiple choice or type). Tutor verifies, comments, and guides forward."
+            />
+            <ModeOption
+              checked={canonical === 'together'}
+              onSelect={() => setMode('together')}
+              title='Together'
+              tagline='"Let&rsquo;s solve together."'
               badge="NEW"
-              desc="Tutor poses each step as a question. You answer (multiple choice or type). Tutor verifies, comments, and guides forward. Interactive learning."
+              desc="You and the tutor solve the problem together, trading turns step-by-step until the solution emerges."
             />
           </>
         )}
@@ -150,11 +194,12 @@ export function LessonModeModal({
 }
 
 function ModeOption({
-  checked, onSelect, title, desc, badge,
+  checked, onSelect, title, tagline, desc, badge,
 }: {
   checked: boolean;
   onSelect: () => void;
   title: string;
+  tagline?: string;
   desc: string;
   badge?: string;
 }) {
@@ -170,6 +215,7 @@ function ModeOption({
         </span>
         <div style={{ flex: 1 }}>
           <span className="tutor-modal__option-title">{title}</span>
+          {tagline && <span className="tutor-modal__option-tagline"> &middot; <em dangerouslySetInnerHTML={{ __html: tagline }} /></span>}
           {badge && <span className="tutor-modal__option-badge">{badge}</span>}
           <div className="tutor-modal__option-desc">{desc}</div>
         </div>
