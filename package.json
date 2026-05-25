@@ -1,6 +1,6 @@
 {
   "name": "@canvasa/tutor-react",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Embeddable AI Tutor \u2014 React components + API client. Host-themed via CSS variables.",
   "type": "module",
   "main": "./dist/tutor-react.js",
@@ -33,6 +33,9 @@
     "katex": ">=0.16.0"
   },
   "peerDependenciesMeta": {
+    "react-router-dom": {
+      "optional": true
+    },
     "katex": {
       "optional": true
     }

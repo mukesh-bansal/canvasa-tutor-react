@@ -1,17 +1,16 @@
-import { jsx as t, jsxs as l, Fragment as I } from "react/jsx-runtime";
+import { jsx as t, jsxs as c, Fragment as U } from "react/jsx-runtime";
 import { useState as f, useEffect as $, useRef as M, useMemo as B } from "react";
 import { useQuery as D } from "@tanstack/react-query";
 import Y from "axios";
-import { Link as j } from "react-router-dom";
 const F = {};
 let P = typeof import.meta < "u" && (F == null ? void 0 : F.VITE_TUTOR_HOST) || "https://canvasa.physolympiad.com", E = "olympiz";
-function de(e) {
+function ce(e) {
   e.host && (P = e.host.replace(/\/$/, "")), e.tenant && (E = e.tenant), _.defaults.baseURL = `${P}/api`, _.defaults.headers.common["X-Tutor-Tenant"] = E;
 }
 function R() {
   return P;
 }
-function pe() {
+function ue() {
   return E;
 }
 const _ = Y.create({
@@ -30,12 +29,12 @@ const C = {
   libraryTopics: () => _.get("/library-topics").then((e) => e.data),
   problemsLibrary: () => _.get("/problems-library").then((e) => e.data),
   generateLesson: (e) => _.post("/generate-lesson", { topic: e }).then((o) => o.data),
-  generateFromUrl: (e, o) => _.post("/generate-from-url", { url: e, title: o }).then((n) => n.data),
+  generateFromUrl: (e, o) => _.post("/generate-from-url", { url: e, title: o }).then((r) => r.data),
   generateFromPdf: (e) => {
     const o = new FormData();
     return o.append("file", e), _.post("/generate-from-pdf", o, {
       headers: { "Content-Type": "multipart/form-data" }
-    }).then((n) => n.data);
+    }).then((r) => r.data);
   },
   lessonStatus: (e) => _.get(`/lesson-status/${e}`).then((o) => o.data),
   wikiSearch: (e) => _.get("/wiki-opensearch", { params: { q: e } }).then((o) => o.data),
@@ -55,29 +54,29 @@ function K() {
 function q(e) {
   return e === "walkthrough" ? "lecture" : e === "make_me" ? "guide" : e;
 }
-const X = (e) => `/ai-tutor/${encodeURIComponent(e)}`;
+const j = (e) => `/ai-tutor/${encodeURIComponent(e)}`;
 function Q({
   lesson: e,
-  lessonHref: o = X,
-  defaultMode: n = "lecture",
-  autoStart: s,
-  eyebrow: i = "Pick a learning mode",
+  lessonHref: o = j,
+  defaultMode: r = "lecture",
+  autoStart: u,
+  eyebrow: a = "Pick a learning mode",
   onClose: p
 }) {
-  const [u, c] = f(s || n);
+  const [i, s] = f(u || r);
   $(() => {
-    function r(b) {
+    function n(b) {
       b.key === "Escape" && p();
     }
-    return window.addEventListener("keydown", r), () => window.removeEventListener("keydown", r);
+    return window.addEventListener("keydown", n), () => window.removeEventListener("keydown", n);
   }, [p]), $(() => {
-    const r = document.body.style.overflow;
+    const n = document.body.style.overflow;
     return document.body.style.overflow = "hidden", () => {
-      document.body.style.overflow = r;
+      document.body.style.overflow = n;
     };
   }, []);
-  function d(r) {
-    const b = q(r), h = K(), g = `&return=${encodeURIComponent(h)}`;
+  function d(n) {
+    const b = q(n), h = K(), g = `&return=${encodeURIComponent(h)}`;
     if (b === "guide" || b === "together") {
       if (!e.slug) {
         window.location.href = `${R()}/tutor?ask=${encodeURIComponent(e.title)}${g}`;
@@ -93,28 +92,28 @@ function Q({
     window.location.href = `${R()}/tutor?ask=${encodeURIComponent(e.title)}${g}`;
   }
   $(() => {
-    s && d(s);
+    u && d(u);
   }, []);
-  const a = q(u);
+  const l = q(i);
   return /* @__PURE__ */ t(
     "div",
     {
       role: "dialog",
       "aria-modal": "true",
-      onClick: (r) => {
-        r.target === r.currentTarget && p();
+      onClick: (n) => {
+        n.target === n.currentTarget && p();
       },
       className: "tutor-modal-backdrop",
-      children: /* @__PURE__ */ l("div", { className: "tutor-modal", onClick: (r) => r.stopPropagation(), children: [
-        /* @__PURE__ */ t("div", { className: "tutor-modal__eyebrow", children: i }),
+      children: /* @__PURE__ */ c("div", { className: "tutor-modal", onClick: (n) => n.stopPropagation(), children: [
+        /* @__PURE__ */ t("div", { className: "tutor-modal__eyebrow", children: a }),
         /* @__PURE__ */ t("h2", { className: "tutor-modal__title", children: e.title }),
         /* @__PURE__ */ t("p", { className: "tutor-modal__sub", children: e.slug && e.cached ? "Cached — instant start." : "Click Start. The intro audio plays right away while we generate the first beat." }),
-        !s && /* @__PURE__ */ l(I, { children: [
+        !u && /* @__PURE__ */ c(U, { children: [
           /* @__PURE__ */ t(
             G,
             {
-              checked: a === "lecture",
-              onSelect: () => c("lecture"),
+              checked: l === "lecture",
+              onSelect: () => s("lecture"),
               title: "Lecture",
               tagline: '"You teach, I learn."',
               desc: "Tutor narrates every step beat-by-beat. Watch the board, listen along, ask tangents anytime. Default mode."
@@ -123,8 +122,8 @@ function Q({
           /* @__PURE__ */ t(
             G,
             {
-              checked: a === "guide",
-              onSelect: () => c("guide"),
+              checked: l === "guide",
+              onSelect: () => s("guide"),
               title: "Guide",
               tagline: '"You guide, I do it."',
               desc: "Tutor poses each step as a question. You answer (multiple choice or type). Tutor verifies, comments, and guides forward."
@@ -133,8 +132,8 @@ function Q({
           /* @__PURE__ */ t(
             G,
             {
-              checked: a === "together",
-              onSelect: () => c("together"),
+              checked: l === "together",
+              onSelect: () => s("together"),
               title: "Together",
               tagline: '"Let’s solve together."',
               badge: "NEW",
@@ -142,7 +141,7 @@ function Q({
             }
           )
         ] }),
-        /* @__PURE__ */ l("div", { className: "tutor-modal__actions", children: [
+        /* @__PURE__ */ c("div", { className: "tutor-modal__actions", children: [
           /* @__PURE__ */ t(
             "button",
             {
@@ -152,11 +151,11 @@ function Q({
               children: "Cancel"
             }
           ),
-          !s && /* @__PURE__ */ t(
+          !u && /* @__PURE__ */ t(
             "button",
             {
               type: "button",
-              onClick: () => d(u),
+              onClick: () => d(i),
               className: "tutor-btn",
               children: "Start →"
             }
@@ -169,9 +168,9 @@ function Q({
 function G({
   checked: e,
   onSelect: o,
-  title: n,
-  tagline: s,
-  desc: i,
+  title: r,
+  tagline: u,
+  desc: a,
   badge: p
 }) {
   return /* @__PURE__ */ t(
@@ -180,42 +179,42 @@ function G({
       type: "button",
       onClick: o,
       className: e ? "tutor-modal__option is-active" : "tutor-modal__option",
-      children: /* @__PURE__ */ l("div", { className: "tutor-modal__option-row", children: [
+      children: /* @__PURE__ */ c("div", { className: "tutor-modal__option-row", children: [
         /* @__PURE__ */ t("span", { className: "tutor-modal__radio", children: e && /* @__PURE__ */ t("span", { className: "tutor-modal__radio-dot" }) }),
-        /* @__PURE__ */ l("div", { style: { flex: 1 }, children: [
-          /* @__PURE__ */ t("span", { className: "tutor-modal__option-title", children: n }),
-          s && /* @__PURE__ */ l("span", { className: "tutor-modal__option-tagline", children: [
+        /* @__PURE__ */ c("div", { style: { flex: 1 }, children: [
+          /* @__PURE__ */ t("span", { className: "tutor-modal__option-title", children: r }),
+          u && /* @__PURE__ */ c("span", { className: "tutor-modal__option-tagline", children: [
             " · ",
-            /* @__PURE__ */ t("em", { dangerouslySetInnerHTML: { __html: s } })
+            /* @__PURE__ */ t("em", { dangerouslySetInnerHTML: { __html: u } })
           ] }),
           p && /* @__PURE__ */ t("span", { className: "tutor-modal__option-badge", children: p }),
-          /* @__PURE__ */ t("div", { className: "tutor-modal__option-desc", children: i })
+          /* @__PURE__ */ t("div", { className: "tutor-modal__option-desc", children: a })
         ] })
       ] })
     }
   );
 }
-const J = "2.05";
-let L = null;
-async function V() {
-  if (L) return L;
+const X = "2.05";
+let T = null;
+async function J() {
+  if (T) return T;
   if (typeof window < "u" && typeof window.renderMathInElement == "function")
-    return L = window.renderMathInElement, L;
+    return T = window.renderMathInElement, T;
   try {
     const e = await import("katex/contrib/auto-render");
-    return await import("katex/dist/katex.min.css"), L = e.default || e, L;
+    return await import("katex/dist/katex.min.css"), T = e.default || e, T;
   } catch (e) {
     return console.warn("[tutor-react] katex auto-render unavailable (no global, no ESM); raw LaTeX will show. Add the CDN <script> tags from the JSDoc comment to enable.", e), null;
   }
 }
-function Z(e, o) {
+function V(e, o) {
   $(() => {
-    let n = !1, s = 0;
-    function i() {
-      n || V().then((p) => {
-        if (!n) {
+    let r = !1, u = 0;
+    function a() {
+      r || J().then((p) => {
+        if (!r) {
           if (!p || !e.current) {
-            s++ < 15 && setTimeout(i, 200);
+            u++ < 15 && setTimeout(a, 200);
             return;
           }
           p(e.current, {
@@ -235,28 +234,28 @@ function Z(e, o) {
         }
       });
     }
-    return i(), () => {
-      n = !0;
+    return a(), () => {
+      r = !0;
     };
   }, o);
 }
-const ee = (e) => `/ai-tutor/${e}`;
+const Z = (e) => `/ai-tutor/${e}`;
 function W(e) {
   if (!e) return "";
   try {
-    const o = new URL(e, "http://x"), n = o.searchParams.get("lesson");
-    if (n) return n;
-    let s = o.pathname;
-    return s = s.replace(/^\/+/, ""), s = s.replace(/^tutor\//, ""), s = s.replace(/^lesson_/, ""), s = s.replace(/\.html$/, ""), s;
+    const o = new URL(e, "http://x"), r = o.searchParams.get("lesson");
+    if (r) return r;
+    let u = o.pathname;
+    return u = u.replace(/^\/+/, ""), u = u.replace(/^tutor\//, ""), u = u.replace(/^lesson_/, ""), u = u.replace(/\.html$/, ""), u;
   } catch {
     return "";
   }
 }
-function te(e) {
-  const [o, n] = f(""), [s, i] = f(!1), [p, u] = f("");
-  function c(g) {
+function ee(e) {
+  const [o, r] = f(""), [u, a] = f(!1), [p, i] = f("");
+  function s(g) {
     if (!g) {
-      u("Lesson ready but slug missing"), i(!1);
+      i("Lesson ready but slug missing"), a(!1);
       return;
     }
     window.location.href = e(g);
@@ -266,77 +265,77 @@ function te(e) {
     for (; ; ) {
       try {
         const m = await C.lessonStatus(g), y = (m.progress || m.status || "").replace(/_/g, " ");
-        if (y && y !== w && (n(y), w = y), m.ready_url) {
-          i(!1), c(W(m.ready_url));
+        if (y && y !== w && (r(y), w = y), m.ready_url) {
+          a(!1), s(W(m.ready_url));
           return;
         }
         if (m.status === "error" || m.error) {
-          u(m.error || "Generation failed"), i(!1);
+          i(m.error || "Generation failed"), a(!1);
           return;
         }
       } catch (m) {
-        u((m == null ? void 0 : m.message) || "Status check failed"), i(!1);
+        i((m == null ? void 0 : m.message) || "Status check failed"), a(!1);
         return;
       }
       await new Promise((m) => setTimeout(m, 1500));
     }
   }
-  const a = K();
-  function r(g) {
-    u(""), n("Opening tutor…"), i(!0), window.location.replace(
-      `${R()}/tutor?ask=${encodeURIComponent(g)}&return=${encodeURIComponent(a)}`
+  const l = K();
+  function n(g) {
+    i(""), r("Opening tutor…"), a(!0), window.location.replace(
+      `${R()}/tutor?ask=${encodeURIComponent(g)}&return=${encodeURIComponent(l)}`
     );
   }
   function b(g, w) {
-    u(""), n("Opening tutor…"), i(!0);
+    i(""), r("Opening tutor…"), a(!0);
     const m = w && w.trim() || g;
     window.location.replace(
-      `${R()}/tutor?ask=${encodeURIComponent(m)}&return=${encodeURIComponent(a)}`
+      `${R()}/tutor?ask=${encodeURIComponent(m)}&return=${encodeURIComponent(l)}`
     );
   }
   async function h(g) {
     var w, m;
-    u(""), n("Reading PDF…"), i(!0);
+    i(""), r("Reading PDF…"), a(!0);
     try {
-      const y = await C.generateFromPdf(g), N = W(y.ready_url);
-      if (N) {
-        c(N);
+      const y = await C.generateFromPdf(g), k = W(y.ready_url);
+      if (k) {
+        s(k);
         return;
       }
       d(y.session_id);
     } catch (y) {
-      u(((m = (w = y == null ? void 0 : y.response) == null ? void 0 : w.data) == null ? void 0 : m.detail) || (y == null ? void 0 : y.message) || "PDF upload failed"), i(!1);
+      i(((m = (w = y == null ? void 0 : y.response) == null ? void 0 : w.data) == null ? void 0 : m.detail) || (y == null ? void 0 : y.message) || "PDF upload failed"), a(!1);
     }
   }
-  return { progress: o, busy: s, error: p, launchTopic: r, launchUrl: b, launchPdf: h };
+  return { progress: o, busy: u, error: p, launchTopic: n, launchUrl: b, launchPdf: h };
 }
-function he({
-  lessonHref: e = ee,
+function de({
+  lessonHref: e = Z,
   heroTitle: o,
-  heroSub: n,
-  className: s
+  heroSub: r,
+  className: u
 }) {
-  const [i, p] = f("ondemand"), [u, c] = f(""), [d, a] = f(""), [r, b] = f("all"), [h, g] = f(""), [w, m] = f("all"), [y, N] = f(null), v = te(e), { data: U } = D({
+  const [a, p] = f("ondemand"), [i, s] = f(""), [d, l] = f(""), [n, b] = f("all"), [h, g] = f(""), [w, m] = f("all"), [y, k] = f(null), v = ee(e), { data: I } = D({
     queryKey: ["tutor-inventory-counts"],
     queryFn: C.inventoryCounts,
     staleTime: 5 * 6e4
   }), { data: S } = D({
     queryKey: ["tutor-library-topics"],
     queryFn: C.libraryTopics,
-    enabled: i === "concepts",
+    enabled: a === "concepts",
     staleTime: 5 * 6e4
-  }), { data: T } = D({
+  }), { data: L } = D({
     queryKey: ["tutor-problems-library"],
     queryFn: C.problemsLibrary,
-    enabled: i === "problems",
+    enabled: a === "problems",
     staleTime: 5 * 6e4
   });
   function A() {
-    const k = u.trim();
-    k && N({ title: k });
+    const N = i.trim();
+    N && k({ title: N });
   }
-  return /* @__PURE__ */ l("div", { className: `tutor-page ${s || ""}`.trim(), children: [
-    /* @__PURE__ */ l(
+  return /* @__PURE__ */ c("div", { className: `tutor-page ${u || ""}`.trim(), children: [
+    /* @__PURE__ */ c(
       "div",
       {
         title: "Olympiz version. Hard-refresh if this doesn't match the latest deploy.",
@@ -359,43 +358,43 @@ function he({
         },
         children: [
           "v",
-          J
+          X
         ]
       }
     ),
-    /* @__PURE__ */ l("section", { className: "tutor-hero", children: [
-      /* @__PURE__ */ t("h1", { children: o ?? /* @__PURE__ */ l(I, { children: [
+    /* @__PURE__ */ c("section", { className: "tutor-hero", children: [
+      /* @__PURE__ */ t("h1", { children: o ?? /* @__PURE__ */ c(U, { children: [
         "What do you want to ",
         /* @__PURE__ */ t("em", { children: "learn" }),
         " today?"
       ] }) }),
-      /* @__PURE__ */ t("p", { children: n ?? "Drop a question." })
+      /* @__PURE__ */ t("p", { children: r ?? "Drop a question." })
     ] }),
-    /* @__PURE__ */ l("nav", { className: "tutor-tabs", role: "tablist", children: [
-      /* @__PURE__ */ l(O, { active: i === "ondemand", onClick: () => p("ondemand"), children: [
+    /* @__PURE__ */ c("nav", { className: "tutor-tabs", role: "tablist", children: [
+      /* @__PURE__ */ c(O, { active: a === "ondemand", onClick: () => p("ondemand"), children: [
         "On-demand ",
         /* @__PURE__ */ t("span", { className: "tutor-tab__count", children: "5 ways" })
       ] }),
-      /* @__PURE__ */ l(O, { active: i === "concepts", onClick: () => p("concepts"), children: [
+      /* @__PURE__ */ c(O, { active: a === "concepts", onClick: () => p("concepts"), children: [
         "Concept library",
-        U ? /* @__PURE__ */ t("span", { className: "tutor-tab__count", children: U.concepts_total.toLocaleString() }) : null
+        I ? /* @__PURE__ */ t("span", { className: "tutor-tab__count", children: I.concepts_total.toLocaleString() }) : null
       ] }),
-      /* @__PURE__ */ l(O, { active: i === "problems", onClick: () => p("problems"), children: [
+      /* @__PURE__ */ c(O, { active: a === "problems", onClick: () => p("problems"), children: [
         "Problems",
-        U ? /* @__PURE__ */ t("span", { className: "tutor-tab__count", children: U.problems_total.toLocaleString() }) : null
+        I ? /* @__PURE__ */ t("span", { className: "tutor-tab__count", children: I.problems_total.toLocaleString() }) : null
       ] })
     ] }),
-    i === "ondemand" && /* @__PURE__ */ l(I, { children: [
-      /* @__PURE__ */ l(x, { title: "Type a topic.", children: [
-        /* @__PURE__ */ l("div", { className: "tutor-row", children: [
+    a === "ondemand" && /* @__PURE__ */ c(U, { children: [
+      /* @__PURE__ */ c(x, { title: "Type a topic.", children: [
+        /* @__PURE__ */ c("div", { className: "tutor-row", children: [
           /* @__PURE__ */ t(
             "input",
             {
               type: "text",
               className: "tutor-input",
-              value: u,
-              onChange: (k) => c(k.target.value),
-              onKeyDown: (k) => k.key === "Enter" && A(),
+              value: i,
+              onChange: (N) => s(N.target.value),
+              onKeyDown: (N) => N.key === "Enter" && A(),
               disabled: v.busy,
               placeholder: "e.g. Bernoulli's principle · Lenz's law · Maxwell's equations"
             }
@@ -406,58 +405,58 @@ function he({
               type: "button",
               className: "tutor-btn",
               onClick: A,
-              disabled: v.busy || !u.trim(),
+              disabled: v.busy || !i.trim(),
               children: v.busy ? "Working…" : "AI Tutor →"
             }
           )
         ] }),
         (v.progress || v.error) && /* @__PURE__ */ t("div", { className: v.error ? "tutor-status tutor-status--error" : "tutor-status", children: v.error || v.progress })
       ] }),
-      /* @__PURE__ */ t(re, { disabled: v.busy, onPick: v.launchUrl }),
+      /* @__PURE__ */ t(te, { disabled: v.busy, onPick: v.launchUrl }),
       /* @__PURE__ */ t(x, { title: "Or, drop a chapter or paper.", children: /* @__PURE__ */ t(ne, { disabled: v.busy, onFile: v.launchPdf }) })
     ] }),
-    i === "concepts" && /* @__PURE__ */ l(
+    a === "concepts" && /* @__PURE__ */ c(
       x,
       {
         title: "Concept library",
         subtitle: S ? `${S.lesson_count.toLocaleString()} lessons across ${S.topics.length} topics` : "Loading…",
         children: [
-          /* @__PURE__ */ l("div", { className: "tutor-row", style: { marginBottom: 14 }, children: [
+          /* @__PURE__ */ c("div", { className: "tutor-row", style: { marginBottom: 14 }, children: [
             /* @__PURE__ */ t(
               "input",
               {
                 type: "text",
                 className: "tutor-input tutor-input--sm",
                 value: d,
-                onChange: (k) => a(k.target.value),
+                onChange: (N) => l(N.target.value),
                 placeholder: "Search concepts…"
               }
             ),
-            /* @__PURE__ */ t(z, { value: r, onChange: b, options: [
+            /* @__PURE__ */ t(z, { value: n, onChange: b, options: [
               { value: "all", label: "All" },
               { value: "HS", label: "HS" },
               { value: "UG", label: "UG" },
               { value: "G", label: "G" }
             ] })
           ] }),
-          /* @__PURE__ */ t(oe, { topics: (S == null ? void 0 : S.topics) || [], q: d, level: r, onPick: N })
+          /* @__PURE__ */ t(re, { topics: (S == null ? void 0 : S.topics) || [], q: d, level: n, onPick: k })
         ]
       }
     ),
-    i === "problems" && /* @__PURE__ */ l(
+    a === "problems" && /* @__PURE__ */ c(
       x,
       {
         title: "Problems",
-        subtitle: T ? `${T.total.toLocaleString()} problems · ${T.cached_count.toLocaleString()} cached` : "Loading…",
+        subtitle: L ? `${L.total.toLocaleString()} problems · ${L.cached_count.toLocaleString()} cached` : "Loading…",
         children: [
-          /* @__PURE__ */ l("div", { className: "tutor-row", style: { marginBottom: 14 }, children: [
+          /* @__PURE__ */ c("div", { className: "tutor-row", style: { marginBottom: 14 }, children: [
             /* @__PURE__ */ t(
               "input",
               {
                 type: "text",
                 className: "tutor-input tutor-input--sm",
                 value: h,
-                onChange: (k) => g(k.target.value),
+                onChange: (N) => g(N.target.value),
                 placeholder: "Search problems…"
               }
             ),
@@ -470,7 +469,7 @@ function he({
               { value: "cached", label: "✓" }
             ] })
           ] }),
-          /* @__PURE__ */ t(ae, { sections: (T == null ? void 0 : T.sections) || [], q: h, chip: w, onPick: N })
+          /* @__PURE__ */ t(oe, { sections: (L == null ? void 0 : L.sections) || [], q: h, chip: w, onPick: k })
         ]
       }
     ),
@@ -479,12 +478,12 @@ function he({
       {
         lesson: y,
         lessonHref: e,
-        onClose: () => N(null)
+        onClose: () => k(null)
       }
     )
   ] });
 }
-function O({ active: e, onClick: o, children: n }) {
+function O({ active: e, onClick: o, children: r }) {
   return /* @__PURE__ */ t(
     "button",
     {
@@ -493,48 +492,48 @@ function O({ active: e, onClick: o, children: n }) {
       "aria-selected": e,
       onClick: o,
       className: e ? "tutor-tab is-active" : "tutor-tab",
-      children: n
+      children: r
     }
   );
 }
-function x({ title: e, subtitle: o, children: n }) {
-  return /* @__PURE__ */ l("section", { className: "tutor-section", children: [
+function x({ title: e, subtitle: o, children: r }) {
+  return /* @__PURE__ */ c("section", { className: "tutor-section", children: [
     /* @__PURE__ */ t("h2", { children: e }),
     o && /* @__PURE__ */ t("div", { className: "tutor-section__sub", children: o }),
-    n
+    r
   ] });
 }
-function z({ value: e, onChange: o, options: n }) {
-  return /* @__PURE__ */ t("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: n.map((s) => /* @__PURE__ */ t(
+function z({ value: e, onChange: o, options: r }) {
+  return /* @__PURE__ */ t("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" }, children: r.map((u) => /* @__PURE__ */ t(
     "button",
     {
       type: "button",
-      className: e === s.value ? "tutor-chip is-active" : "tutor-chip",
-      onClick: () => o(s.value),
-      children: s.label
+      className: e === u.value ? "tutor-chip is-active" : "tutor-chip",
+      onClick: () => o(u.value),
+      children: u.label
     },
-    s.value
+    u.value
   )) });
 }
-function re({ disabled: e, onPick: o }) {
-  const [n, s] = f("internal"), [i, p] = f(""), [u, c] = f([]), [d, a] = f(!1), r = M(null);
+function te({ disabled: e, onPick: o }) {
+  const [r, u] = f("internal"), [a, p] = f(""), [i, s] = f([]), [d, l] = f(!1), n = M(null);
   return $(() => {
-    if (!i.trim()) {
-      c([]);
+    if (!a.trim()) {
+      s([]);
       return;
     }
-    r.current && clearTimeout(r.current), r.current = setTimeout(async () => {
-      a(!0);
+    n.current && clearTimeout(n.current), n.current = setTimeout(async () => {
+      l(!0);
       try {
-        const h = n === "external" ? await C.wikiSearch(i.trim()) : await C.superstemSearch(i.trim());
-        c(h.results || []);
+        const h = r === "external" ? await C.wikiSearch(a.trim()) : await C.superstemSearch(a.trim());
+        s(h.results || []);
       } catch {
-        c([]);
+        s([]);
       } finally {
-        a(!1);
+        l(!1);
       }
     }, 300);
-  }, [i, n]), /* @__PURE__ */ l(x, { title: "Or, point at a source.", children: [
+  }, [a, r]), /* @__PURE__ */ c(x, { title: "Or, point at a source.", children: [
     /* @__PURE__ */ t("div", { className: "tutor-sources", children: [
       { key: "internal", lbl: "Internal wiki", sub: "SuperStem Physics + AI + HS concept graphs" },
       { key: "external", lbl: "External wiki", sub: "Wikipedia — live" }
@@ -542,11 +541,11 @@ function re({ disabled: e, onPick: o }) {
       "button",
       {
         type: "button",
-        className: n === h.key ? "tutor-source is-active" : "tutor-source",
-        onClick: () => s(h.key),
-        children: /* @__PURE__ */ l("div", { className: "tutor-source__row", children: [
+        className: r === h.key ? "tutor-source is-active" : "tutor-source",
+        onClick: () => u(h.key),
+        children: /* @__PURE__ */ c("div", { className: "tutor-source__row", children: [
           /* @__PURE__ */ t("span", { className: "tutor-source__dot" }),
-          /* @__PURE__ */ l("div", { children: [
+          /* @__PURE__ */ c("div", { children: [
             /* @__PURE__ */ t("div", { className: "tutor-source__lbl", children: h.lbl }),
             /* @__PURE__ */ t("div", { className: "tutor-source__sub", children: h.sub })
           ] })
@@ -559,14 +558,14 @@ function re({ disabled: e, onPick: o }) {
       {
         type: "text",
         className: "tutor-input tutor-input--sm",
-        value: i,
+        value: a,
         onChange: (h) => p(h.target.value),
         disabled: e,
         placeholder: "Type to search the selected source…"
       }
     ),
     d && /* @__PURE__ */ t("div", { className: "tutor-status", children: "Searching…" }),
-    u.length > 0 && /* @__PURE__ */ t("div", { className: "tutor-results", children: u.slice(0, 10).map((h, g) => /* @__PURE__ */ l(
+    i.length > 0 && /* @__PURE__ */ t("div", { className: "tutor-results", children: i.slice(0, 10).map((h, g) => /* @__PURE__ */ c(
       "button",
       {
         type: "button",
@@ -584,42 +583,42 @@ function re({ disabled: e, onPick: o }) {
   ] });
 }
 function ne({ disabled: e, onFile: o }) {
-  const n = M(null), [s, i] = f(!1);
-  function p(u) {
-    !u || e || u.name.toLowerCase().endsWith(".pdf") && o(u);
+  const r = M(null), [u, a] = f(!1);
+  function p(i) {
+    !i || e || i.name.toLowerCase().endsWith(".pdf") && o(i);
   }
-  return /* @__PURE__ */ l(
+  return /* @__PURE__ */ c(
     "div",
     {
-      className: `tutor-drop${s ? " is-hover" : ""}`,
+      className: `tutor-drop${u ? " is-hover" : ""}`,
       onClick: () => {
-        var u;
-        return !e && ((u = n.current) == null ? void 0 : u.click());
+        var i;
+        return !e && ((i = r.current) == null ? void 0 : i.click());
       },
-      onDragOver: (u) => {
-        u.preventDefault(), i(!0);
+      onDragOver: (i) => {
+        i.preventDefault(), a(!0);
       },
-      onDragLeave: () => i(!1),
-      onDrop: (u) => {
-        var c;
-        u.preventDefault(), i(!1), p(((c = u.dataTransfer.files) == null ? void 0 : c[0]) || null);
+      onDragLeave: () => a(!1),
+      onDrop: (i) => {
+        var s;
+        i.preventDefault(), a(!1), p(((s = i.dataTransfer.files) == null ? void 0 : s[0]) || null);
       },
       children: [
         /* @__PURE__ */ t("div", { className: "tutor-drop__icon", children: "📄" }),
-        /* @__PURE__ */ l("div", { className: "tutor-drop__hint", children: [
+        /* @__PURE__ */ c("div", { className: "tutor-drop__hint", children: [
           "Drop a PDF here, or ",
           /* @__PURE__ */ t("strong", { children: "click to choose a file" })
         ] }),
         /* @__PURE__ */ t(
           "input",
           {
-            ref: n,
+            ref: r,
             type: "file",
             accept: "application/pdf",
             hidden: !0,
-            onChange: (u) => {
-              var c;
-              return p(((c = u.target.files) == null ? void 0 : c[0]) || null);
+            onChange: (i) => {
+              var s;
+              return p(((s = i.target.files) == null ? void 0 : s[0]) || null);
             }
           }
         )
@@ -627,31 +626,31 @@ function ne({ disabled: e, onFile: o }) {
     }
   );
 }
-function oe({
+function re({
   topics: e,
   q: o,
-  level: n,
-  onPick: s
+  level: r,
+  onPick: u
 }) {
-  const [i, p] = f({}), u = B(() => {
-    const c = o.trim().toLowerCase();
+  const [a, p] = f({}), i = B(() => {
+    const s = o.trim().toLowerCase();
     return e.map((d) => ({
       ...d,
-      lessons: d.lessons.filter((a) => !(n !== "all" && a.level !== n || c && !a.title.toLowerCase().includes(c)))
+      lessons: d.lessons.filter((l) => !(r !== "all" && l.level !== r || s && !l.title.toLowerCase().includes(s)))
     })).filter((d) => d.lessons.length > 0);
-  }, [e, o, n]);
-  return e.length ? u.length ? /* @__PURE__ */ t("div", { children: u.map((c) => {
-    const d = !!i[c.name];
-    return /* @__PURE__ */ l("div", { style: { marginBottom: 24 }, children: [
-      /* @__PURE__ */ l(
+  }, [e, o, r]);
+  return e.length ? i.length ? /* @__PURE__ */ t("div", { children: i.map((s) => {
+    const d = !!a[s.name];
+    return /* @__PURE__ */ c("div", { style: { marginBottom: 24 }, children: [
+      /* @__PURE__ */ c(
         "h3",
         {
           role: "button",
           tabIndex: 0,
           "aria-expanded": !d,
-          onClick: () => p((a) => ({ ...a, [c.name]: !a[c.name] })),
-          onKeyDown: (a) => {
-            (a.key === "Enter" || a.key === " ") && (a.preventDefault(), p((r) => ({ ...r, [c.name]: !r[c.name] })));
+          onClick: () => p((l) => ({ ...l, [s.name]: !l[s.name] })),
+          onKeyDown: (l) => {
+            (l.key === "Enter" || l.key === " ") && (l.preventDefault(), p((n) => ({ ...n, [s.name]: !n[s.name] })));
           },
           style: { cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: 8 },
           title: d ? "Click to expand" : "Click to collapse",
@@ -671,66 +670,66 @@ function oe({
                 children: "▾"
               }
             ),
-            /* @__PURE__ */ t("span", { children: c.icon }),
+            /* @__PURE__ */ t("span", { children: s.icon }),
             " ",
-            c.name,
-            /* @__PURE__ */ l("span", { className: "tutor-tab__count", children: [
+            s.name,
+            /* @__PURE__ */ c("span", { className: "tutor-tab__count", children: [
               "(",
-              c.lessons.length,
+              s.lessons.length,
               ")"
             ] })
           ]
         }
       ),
-      !d && /* @__PURE__ */ t("div", { className: "tutor-card-grid", children: c.lessons.map((a, r) => /* @__PURE__ */ l(
+      !d && /* @__PURE__ */ t("div", { className: "tutor-card-grid", children: s.lessons.map((l, n) => /* @__PURE__ */ c(
         "button",
         {
           type: "button",
-          onClick: () => s({ slug: a.slug, title: a.title, cached: a.cached, guide_cached: a.guide_cached }),
+          onClick: () => u({ slug: l.slug, title: l.title, cached: l.cached, guide_cached: l.guide_cached }),
           className: "tutor-card",
           style: { textAlign: "left", font: "inherit", cursor: "pointer" },
           children: [
-            /* @__PURE__ */ t("div", { className: "tutor-card__title", children: a.title }),
-            /* @__PURE__ */ l("div", { className: "tutor-card__meta", children: [
-              /* @__PURE__ */ t("span", { children: a.level }),
-              a.cached && /* @__PURE__ */ t("span", { className: "tutor-card__cached", children: "✓ cached" }),
-              a.guide_cached && /* @__PURE__ */ t("span", { style: { color: "var(--tutor-warning)" }, children: "⚡ guide" })
+            /* @__PURE__ */ t("div", { className: "tutor-card__title", children: l.title }),
+            /* @__PURE__ */ c("div", { className: "tutor-card__meta", children: [
+              /* @__PURE__ */ t("span", { children: l.level }),
+              l.cached && /* @__PURE__ */ t("span", { className: "tutor-card__cached", children: "✓ cached" }),
+              l.guide_cached && /* @__PURE__ */ t("span", { style: { color: "var(--tutor-warning)" }, children: "⚡ guide" })
             ] })
           ]
         },
-        c.name + "::" + a.slug + "::" + r
+        s.name + "::" + l.slug + "::" + n
       )) })
-    ] }, c.name);
+    ] }, s.name);
   }) }) : /* @__PURE__ */ t("p", { className: "tutor-empty", children: "No matches." }) : /* @__PURE__ */ t("p", { className: "tutor-empty", children: "Loading…" });
 }
-function ae({
+function oe({
   sections: e,
   q: o,
-  chip: n,
-  onPick: s
+  chip: r,
+  onPick: u
 }) {
-  const [i, p] = f({}), u = M(null), c = B(() => {
+  const [a, p] = f({}), i = M(null), s = B(() => {
     const d = o.trim().toLowerCase();
-    return e.map((a) => ({
-      ...a,
-      problems: a.problems.filter((r) => !(n === "HS" && r.level !== "HS" || n === "UG" && r.level !== "UG" || n === "G" && r.level !== "G" && r.level !== "Grad" || n === "Olympiad" && r.origin !== "physolympiad" || n === "cached" && !r.cached || d && !r.title.toLowerCase().includes(d) && !(r.statement || "").toLowerCase().includes(d)))
-    })).filter((a) => a.problems.length > 0);
-  }, [e, o, n]);
-  return Z(u, [c, i]), e.length ? c.length ? /* @__PURE__ */ t("div", { ref: u, children: c.map((d) => {
-    const a = !!i[d.name];
-    return /* @__PURE__ */ l("div", { style: { marginBottom: 24 }, children: [
-      /* @__PURE__ */ l(
+    return e.map((l) => ({
+      ...l,
+      problems: l.problems.filter((n) => !(r === "HS" && n.level !== "HS" || r === "UG" && n.level !== "UG" || r === "G" && n.level !== "G" && n.level !== "Grad" || r === "Olympiad" && n.origin !== "physolympiad" || r === "cached" && !n.cached || d && !n.title.toLowerCase().includes(d) && !(n.statement || "").toLowerCase().includes(d)))
+    })).filter((l) => l.problems.length > 0);
+  }, [e, o, r]);
+  return V(i, [s, a]), e.length ? s.length ? /* @__PURE__ */ t("div", { ref: i, children: s.map((d) => {
+    const l = !!a[d.name];
+    return /* @__PURE__ */ c("div", { style: { marginBottom: 24 }, children: [
+      /* @__PURE__ */ c(
         "h3",
         {
           role: "button",
           tabIndex: 0,
-          "aria-expanded": !a,
-          onClick: () => p((r) => ({ ...r, [d.name]: !r[d.name] })),
-          onKeyDown: (r) => {
-            (r.key === "Enter" || r.key === " ") && (r.preventDefault(), p((b) => ({ ...b, [d.name]: !b[d.name] })));
+          "aria-expanded": !l,
+          onClick: () => p((n) => ({ ...n, [d.name]: !n[d.name] })),
+          onKeyDown: (n) => {
+            (n.key === "Enter" || n.key === " ") && (n.preventDefault(), p((b) => ({ ...b, [d.name]: !b[d.name] })));
           },
           style: { cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: 8 },
-          title: a ? "Click to expand" : "Click to collapse",
+          title: l ? "Click to expand" : "Click to collapse",
           children: [
             /* @__PURE__ */ t(
               "span",
@@ -740,7 +739,7 @@ function ae({
                   display: "inline-block",
                   width: "0.7em",
                   transition: "transform 0.15s ease",
-                  transform: a ? "rotate(-90deg)" : "rotate(0deg)",
+                  transform: l ? "rotate(-90deg)" : "rotate(0deg)",
                   color: "var(--tutor-muted, #5a7c92)",
                   fontSize: "0.75em"
                 },
@@ -750,7 +749,7 @@ function ae({
             /* @__PURE__ */ t("span", { children: d.icon }),
             " ",
             d.name,
-            /* @__PURE__ */ l("span", { className: "tutor-tab__count", children: [
+            /* @__PURE__ */ c("span", { className: "tutor-tab__count", children: [
               "(",
               d.problems.length,
               ")"
@@ -758,69 +757,82 @@ function ae({
           ]
         }
       ),
-      !a && d.problems.map((r, b) => (
+      !l && d.problems.map((n, b) => (
         // v0.1.4: removed .slice(0, 50) cap — show all problems per section.
-        /* @__PURE__ */ l(
+        /* @__PURE__ */ c(
           "button",
           {
             type: "button",
-            onClick: () => s({ slug: r.slug, title: r.title, cached: r.cached, guide_cached: r.guide_cached }),
+            onClick: () => u({ slug: n.slug, title: n.title, cached: n.cached, guide_cached: n.guide_cached }),
             className: "tutor-prob",
             style: { textAlign: "left", font: "inherit", cursor: "pointer", display: "block", width: "100%" },
             children: [
-              /* @__PURE__ */ l("div", { className: "tutor-prob__head", children: [
-                /* @__PURE__ */ t("span", { className: "tutor-prob__title", children: r.title }),
-                r.difficulty && /* @__PURE__ */ t("span", { className: `tutor-pill tutor-pill--${r.difficulty}`, children: r.difficulty }),
-                r.level && /* @__PURE__ */ t("span", { className: "tutor-pill", children: r.level }),
-                r.source && /* @__PURE__ */ l("span", { style: { fontSize: "0.7rem", color: "var(--tutor-muted)" }, children: [
+              /* @__PURE__ */ c("div", { className: "tutor-prob__head", children: [
+                /* @__PURE__ */ t("span", { className: "tutor-prob__title", children: n.title }),
+                n.difficulty && /* @__PURE__ */ t("span", { className: `tutor-pill tutor-pill--${n.difficulty}`, children: n.difficulty }),
+                n.level && /* @__PURE__ */ t("span", { className: "tutor-pill", children: n.level }),
+                n.source && /* @__PURE__ */ c("span", { style: { fontSize: "0.7rem", color: "var(--tutor-muted)" }, children: [
                   "· ",
-                  r.source
+                  n.source
                 ] })
               ] }),
-              r.statement && /* @__PURE__ */ t("div", { className: "tutor-prob__statement", children: r.statement })
+              n.statement && /* @__PURE__ */ t("div", { className: "tutor-prob__statement", children: n.statement })
             ]
           },
-          d.name + "::" + r.slug + "::" + b
+          d.name + "::" + n.slug + "::" + b
         )
       ))
     ] }, d.name);
   }) }) : /* @__PURE__ */ t("p", { className: "tutor-empty", children: "No matches." }) : /* @__PURE__ */ t("p", { className: "tutor-empty", children: "Loading…" });
 }
-function me({ to: e = "/ai-tutor", label: o = "AI Tutor", badge: n, className: s }) {
-  return /* @__PURE__ */ l(j, { to: e, className: `tutor-btn ${s || ""}`.trim(), style: { gap: 6 }, children: [
+function pe({
+  to: e = "/ai-tutor",
+  label: o = "AI Tutor",
+  badge: r,
+  className: u,
+  linkComponent: a
+}) {
+  const p = `tutor-btn ${u || ""}`.trim(), i = { gap: 6 }, s = /* @__PURE__ */ c(U, { children: [
     /* @__PURE__ */ t("span", { children: o }),
-    n && /* @__PURE__ */ t("span", { style: {
-      fontSize: 9,
-      fontWeight: 800,
-      letterSpacing: "0.1em",
-      padding: "2px 6px",
-      borderRadius: 4,
-      background: "var(--tutor-accent)",
-      color: "var(--tutor-on-accent)"
-    }, children: n })
+    r && /* @__PURE__ */ t(
+      "span",
+      {
+        style: {
+          fontSize: 9,
+          fontWeight: 800,
+          letterSpacing: "0.1em",
+          padding: "2px 6px",
+          borderRadius: 4,
+          background: "var(--tutor-accent)",
+          color: "var(--tutor-on-accent)"
+        },
+        children: r
+      }
+    )
   ] });
+  return a ? /* @__PURE__ */ t(a, { to: e, className: p, style: i, children: s }) : /* @__PURE__ */ t("a", { href: e, className: p, style: i, children: s });
 }
-function fe({
+function he({
   lesson: e,
   defaultMode: o = "walkthrough",
-  autoStart: n,
-  lessonHref: s,
-  label: i = "Ask AI ↗",
+  autoStart: r,
+  lessonHref: u,
+  label: a = "Ask AI ↗",
   badge: p,
-  className: u,
-  trigger: c
+  className: i,
+  trigger: s
 }) {
-  const [d, a] = f(!1), r = () => a(!0);
-  return /* @__PURE__ */ l(I, { children: [
-    c ? c(r) : /* @__PURE__ */ l(
+  const [d, l] = f(!1), n = () => l(!0);
+  return /* @__PURE__ */ c(U, { children: [
+    s ? s(n) : /* @__PURE__ */ c(
       "button",
       {
         type: "button",
-        onClick: r,
-        className: u || "tutor-btn",
+        onClick: n,
+        className: i || "tutor-btn",
         style: { gap: 6 },
         children: [
-          /* @__PURE__ */ t("span", { children: i }),
+          /* @__PURE__ */ t("span", { children: a }),
           p && /* @__PURE__ */ t("span", { style: {
             fontSize: 9,
             fontWeight: 800,
@@ -838,21 +850,21 @@ function fe({
       {
         lesson: e,
         defaultMode: o,
-        autoStart: n,
-        lessonHref: s,
-        onClose: () => a(!1)
+        autoStart: r,
+        lessonHref: u,
+        onClose: () => l(!1)
       }
     )
   ] });
 }
 export {
-  fe as AskTutorButton,
+  he as AskTutorButton,
   Q as LessonModeModal,
-  me as TutorButton,
-  he as TutorLanding,
-  de as configureTutor,
+  pe as TutorButton,
+  de as TutorLanding,
+  ce as configureTutor,
   R as getTutorHost,
-  pe as getTutorTenant,
+  ue as getTutorTenant,
   H as searchResultBlurb,
   _ as tutorApi,
   C as tutorEndpoints
